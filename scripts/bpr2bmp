@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+
+# Convert .bpr file to .bmp.
+
+import sys, os.path, fnmatch
+import getopt
+import numpy as np
+from pySonix.rpreaders import rp_read
+import pySonix.ucbutils.probe_for_id as probe_for_id
+import pySonix.ucbutils.scanconvert as scanconvert
+
+import Image
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
+VERSION = '0.1.0'
+# TODO: remove hard-coded probe location
+PROBE = probe_for_id.probe_for_id('C:/src/sdk610/MATLAB/SonixDataTools/probes.xml', 19)
+
+standard_usage_str = """bpr2bmp [--verbose] file1.bpr [fileN.bpr...]           # file mode
+
+    bpr2bmp [--verbose] [--force] --seek dir1 [dirN...]    # seek mode"""
+
+ver_usage_str = 'bpr2bmp --version|-v'
+help_usage_str = 'bpr2bmp --help|-h'
+
+def usage():
+    print ('\n' + standard_usage_str)
+    print ('\n' + ver_usage_str)
+    print ('\n' + help_usage_str)
+
+def version():
+    print """
+bpr2bmp Version %s
+""" % (VERSION)
+
+def help():
+    print """
+bpr2bmp - Convert pre scan-converted B-mode (.bpr) ultrasound data to bitmaps
+
+bpr2bmp reads from .bpr files and saves the individual frames to indexed
+bitmaps, starting at '0'.
+
+Usage:
+
+    %s
+
+    %s
+
+    %s
+
+In file mode the program operates on one or more .bpr file command line
+arguments. Output files are created in the same directory as the .bpr
+files and have the same name as the input file with the .bpr suffix
+replaced with '.N.bpr', where N is a frame index. If any .bmp files already
+exist with the same name they will be overwritten.
+
+In seek mode the program scans one or more directories for .bpr files and
+operates on each one it finds. If it does not find a '.0.bmp' file that
+corresponds to the .bpr then it extracts bitmaps from the .bpr. If it does
+find a corresponding '.0.bmp' file then it skips processing that .bpr. Use
+--force to prevent skipping and to overwrite existing .bmp files in seek
+mode.
+
+Use --verbose to turn on status messages as .bpr files are processed.
+""" % (standard_usage_str, ver_usage_str, help_usage_str)
+
+def bitmap_for_bpr_exists(bpr):
+    """Return true if one or more bitmap files exist for a .bpr file."""
+    return os.path.isfile(os.path.splitext(bpr)[0] + '.0.bmp')
+
+def convert_to_bmp(bpr, probe):
+    barename = os.path.splitext(bpr)[0]   # get filename without extension
+    (Im, header) = rp_read(bpr)
+    
+    width  = Im.shape[0]
+    height = Im.shape[1]
+    numframes = Im.shape[2]
+
+    apitch = float(header.h)/header.sf*1540/2/width
+    lpitch = float(probe.pitch)*1e-6*probe.numElements/height
+    radius = probe.radius*1e-6
+    ppmm=2
+
+    for idx in range(numframes):
+        data = Im[...,idx]
+        data = np.flipud(scanconvert.scanconvert(data.astype(np.long), apitch, lpitch, radius, ppmm))
+
+        # Save .bmp with PIL.
+        frame = Image.fromarray(data.astype(np.uint8))
+        frame.save("{:s}.{:d}.bmp".format(barename, idx))
+
+        # Save .bmp with matplotlib.
+#        plt.imshow(data, cmap = cm.Greys_r) #, extent = [0, float(frame.shape[1])/ppmm, 0, float(frame.shape[0]/ppmm)])
+#        plt.savefig("{:s}.{:d}.plt.bmp".format(barename, idx))
+    
+
+if __name__ == '__main__':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "force"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    seekmode = False
+    verbose = False
+    force = False
+    for o, a in opts:
+        if o in ('-h', '--help'):
+            help()
+            sys.exit(0)
+        elif o in ('-v', '--version'):
+            version()
+            sys.exit(0)
+        elif o == '--seek':
+            seekmode = True
+        elif o == '--verbose':
+            verbose = True
+        elif o == '--force':
+            force = True
+    if len(args) == 0:
+        usage()
+        sys.exit(2)
+
+    for fname in args:
+        if seekmode:
+            bprlist = []
+            for root, dirnames, filenames in os.walk(fname):
+                for filename in fnmatch.filter(filenames, '*.bpr'):
+                    bprlist.append(os.path.join(root, filename))
+            for bpr in bprlist:
+                if force or not bitmap_for_bpr_exists(bpr):
+                    if verbose:
+                        sys.stderr.write("Creating bitmaps for {:s}.\n".format(bpr))
+                    try:
+                        convert_to_bmp(bpr, PROBE)
+                    except:
+                        sys.stderr.write("Error in converting {:s}. Skipping.\n".format(bpr))
+                else:
+                    if verbose:
+                        sys.stderr.write("Skipping {:s}. Bitmap already exists.\n".format(bpr))
+        else:
+            if verbose:
+                sys.stderr.write("Creating bitmaps for {:s}.\n".format(fname))
+
+            try:
+                convert_to_bmp(fname, PROBE)
+            except:
+                sys.stderr.write("Error in converting {:s}.\n".format(fname))
+
