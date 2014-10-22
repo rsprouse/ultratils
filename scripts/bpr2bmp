@@ -2,7 +2,7 @@
 
 # Convert .bpr file to .bmp.
 
-import sys, os.path, fnmatch
+import os, sys, os.path, fnmatch
 import getopt
 import numpy as np
 from pySonix.rpreaders import rp_read
@@ -14,9 +14,11 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 VERSION = '0.1.0'
-# TODO: remove hard-coded probe location
-#PROBE = probe_for_id.probe_for_id('C:/src/sdk610/MATLAB/SonixDataTools/probes.xml', 19)
-PROBE = probe_for_id.probe_for_id('/Users/ronald/src//ultrasonix_matlab/SonixDataTools/probes.xml', 19)
+# TODO: remove hard-coded probe locations
+if os.name == 'nt':
+    PROBE = probe_for_id.probe_for_id('C:/src/sdk610/MATLAB/SonixDataTools/probes.xml', 19)
+elif os.name == 'mac':
+    PROBE = probe_for_id.probe_for_id('/Users/ronald/src//ultrasonix_matlab/SonixDataTools/probes.xml', 19)
 
 standard_usage_str = """bpr2bmp [--verbose] file1.bpr [fileN.bpr...]           # file mode
 
@@ -70,7 +72,7 @@ def bitmap_for_bpr_exists(bpr):
     """Return true if one or more bitmap files exist for a .bpr file."""
     return os.path.isfile(os.path.splitext(bpr)[0] + '.0.bmp')
 
-def convert_to_bmp(bpr, probe, newmethod=True):
+def convert_to_bmp(bpr, probe, newmethod):
     """Convert the frames in a bpr file to bitmaps. newmethod is a temporary parameter while we test out a new way of converting."""
     barename = os.path.splitext(bpr)[0]   # get filename without extension
     (Im, header) = rp_read(bpr)
@@ -105,6 +107,8 @@ def convert_to_bmp(bpr, probe, newmethod=True):
     
 
 if __name__ == '__main__':
+    if verbose:
+        print "Starting at: ", datetime.datetime.now().time()
     try:
         # TODO: remove newmethod parameter after testing new method
         opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "force", "oldmethod"])
@@ -146,7 +150,7 @@ if __name__ == '__main__':
                     if verbose:
                         sys.stderr.write("Creating bitmaps for {:s}.\n".format(bpr))
                     try:
-                        convert_to_bmp(bpr, PROBE, newmethod)
+                        convert_to_bmp(bpr, PROBE, newmethod=newmethod)
                     except:
                         sys.stderr.write("Error in converting {:s}. Skipping.\n".format(bpr))
                 else:
@@ -157,7 +161,9 @@ if __name__ == '__main__':
                 sys.stderr.write("Creating bitmaps for {:s}.\n".format(fname))
 
             try:
-                convert_to_bmp(fname, PROBE, newmethod)
+                convert_to_bmp(fname, PROBE, newmethod=newmethod)
             except Exception as e:
                 sys.stderr.write("Error in converting {:s}: {:s}.\n".format(fname, e))
+    if verbose:
+        print "Ending at: ", datetime.datetime.now().time()
 
