@@ -15,7 +15,8 @@ import matplotlib.cm as cm
 
 VERSION = '0.1.0'
 # TODO: remove hard-coded probe location
-PROBE = probe_for_id.probe_for_id('C:/src/sdk610/MATLAB/SonixDataTools/probes.xml', 19)
+#PROBE = probe_for_id.probe_for_id('C:/src/sdk610/MATLAB/SonixDataTools/probes.xml', 19)
+PROBE = probe_for_id.probe_for_id('/Users/ronald/src//ultrasonix_matlab/SonixDataTools/probes.xml', 19)
 
 standard_usage_str = """bpr2bmp [--verbose] file1.bpr [fileN.bpr...]           # file mode
 
@@ -69,7 +70,8 @@ def bitmap_for_bpr_exists(bpr):
     """Return true if one or more bitmap files exist for a .bpr file."""
     return os.path.isfile(os.path.splitext(bpr)[0] + '.0.bmp')
 
-def convert_to_bmp(bpr, probe):
+def convert_to_bmp(bpr, probe, newmethod=True):
+    """Convert the frames in a bpr file to bitmaps. newmethod is a temporary parameter while we test out a new way of converting."""
     barename = os.path.splitext(bpr)[0]   # get filename without extension
     (Im, header) = rp_read(bpr)
     
@@ -82,13 +84,20 @@ def convert_to_bmp(bpr, probe):
     radius = probe.radius*1e-6
     ppmm=2
 
-    for idx in range(numframes):
-        data = Im[...,idx]
-        data = np.flipud(scanconvert.scanconvert(data.astype(np.long), apitch, lpitch, radius, ppmm))
-
-        # Save .bmp with PIL.
-        frame = Image.fromarray(data.astype(np.uint8))
-        frame.save("{:s}.{:d}.bmp".format(barename, idx))
+    if newmethod:
+        converter = scanconvert.Converter(Im, apitch, lpitch, radius, ppmm)
+        for idx in range(numframes):
+            data = np.flipud(converter.as_bmp(idx))
+            frame = Image.fromarray(data.astype(np.uint8))
+            frame.save("{:s}.{:d}.bmp".format(barename, idx))
+    else:
+        for idx in range(numframes):
+            data = Im[...,idx]
+            data = np.flipud(scanconvert.scanconvert(data.astype(np.long), apitch, lpitch, radius, ppmm))
+    
+            # Save .bmp with PIL.
+            frame = Image.fromarray(data.astype(np.uint8))
+            frame.save("{:s}.{:d}.bmp".format(barename, idx))
 
         # Save .bmp with matplotlib.
 #        plt.imshow(data, cmap = cm.Greys_r) #, extent = [0, float(frame.shape[1])/ppmm, 0, float(frame.shape[0]/ppmm)])
@@ -97,7 +106,8 @@ def convert_to_bmp(bpr, probe):
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "force"])
+        # TODO: remove newmethod parameter after testing new method
+        opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "force", "oldmethod"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -105,6 +115,7 @@ if __name__ == '__main__':
     seekmode = False
     verbose = False
     force = False
+    newmethod = True
     for o, a in opts:
         if o in ('-h', '--help'):
             help()
@@ -118,6 +129,8 @@ if __name__ == '__main__':
             verbose = True
         elif o == '--force':
             force = True
+        elif o == '--oldmethod':
+            newmethod = False
     if len(args) == 0:
         usage()
         sys.exit(2)
@@ -133,7 +146,7 @@ if __name__ == '__main__':
                     if verbose:
                         sys.stderr.write("Creating bitmaps for {:s}.\n".format(bpr))
                     try:
-                        convert_to_bmp(bpr, PROBE)
+                        convert_to_bmp(bpr, PROBE, newmethod)
                     except:
                         sys.stderr.write("Error in converting {:s}. Skipping.\n".format(bpr))
                 else:
@@ -144,7 +157,7 @@ if __name__ == '__main__':
                 sys.stderr.write("Creating bitmaps for {:s}.\n".format(fname))
 
             try:
-                convert_to_bmp(fname, PROBE)
-            except:
-                sys.stderr.write("Error in converting {:s}.\n".format(fname))
+                convert_to_bmp(fname, PROBE, newmethod)
+            except Exception as e:
+                sys.stderr.write("Error in converting {:s}: {:s}.\n".format(fname, e))
 
