@@ -100,6 +100,11 @@ def raw2bmp(dirname):
 
 def acquire(acqname):
     '''Perform a single acquisition, creating output files based on acqname.'''
+    # Make sure Ultrasonix is frozen before we start sox.
+    frz_args = ['C:\\bin\\ultracomm.exe', '--params', 'params.cfg', '--freeze-only']
+    frz_proc = subprocess.Popen(frz_args)
+    frz_proc.wait()
+
     rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
     ult_args = ['C:\\bin\\ultracomm.exe', '--params', 'params.cfg', '--output', acqname]
     rec_proc = subprocess.Popen(rec_args, shell=True)
