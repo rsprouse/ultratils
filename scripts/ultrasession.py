@@ -113,6 +113,20 @@ def acquire(acqname):
     rec_proc.wait()
     #win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
 
+def separate_channels(acqname):
+    '''Separate the left and right channels from the acquisition .wav.'''
+    wavname = acqname + '.wav'
+    for num in ['1', '2']:
+        ch = acqname + '.ch' + num + '.wav'
+        sox_args = ['C:\\bin\\sox.exe', wavname, ch, 'remix', num]
+        sox_proc = subprocess.Popen(sox_args, shell=True)
+        sox_proc.wait()
+        if sox_proc != 0:
+            for line in sox_proc.stderr:
+                sys.stderr.write(line + '\n')
+            raise Exception("sox exited with status: {0}".format(sox_proc.returncode))
+
+
 if __name__ == '__main__':
     tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
     acqdir = os.path.join(PROJECT_DIR, tstamp)
@@ -139,6 +153,14 @@ if __name__ == '__main__':
 #    except Exception as e:
 #        print "Error in converting raw image files to .bmp!", e
 #        raise
+
+    try:
+        print "Separating audio channels"
+        separate_channels(acqbase)
+    except Exception as e:
+        print "Error in separating audio channels", e
+        raise
+
     try:
         print "Creating synchronization textgrid"
         wavname = acqbase + '.wav'
