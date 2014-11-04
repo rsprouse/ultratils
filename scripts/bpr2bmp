@@ -107,8 +107,6 @@ def convert_to_bmp(bpr, probe, newmethod):
     
 
 if __name__ == '__main__':
-    if verbose:
-        print "Starting at: ", datetime.datetime.now().time()
     try:
         # TODO: remove newmethod parameter after testing new method
         opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "force", "oldmethod"])
@@ -139,6 +137,8 @@ if __name__ == '__main__':
         usage()
         sys.exit(2)
 
+    if verbose:
+        print "Starting at: ", datetime.datetime.now().time()
     for fname in args:
         if seekmode:
             bprlist = []
