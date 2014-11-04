@@ -2,7 +2,7 @@
 
 # Run an ultrasound session.
 
-import os, os.path, signal, subprocess
+import os, os.path, sys, signal, subprocess
 import numpy as np
 import win32api, win32con
 from datetime import datetime
@@ -121,7 +121,7 @@ def separate_channels(acqname):
         sox_args = ['C:\\bin\\sox.exe', wavname, ch, 'remix', num]
         sox_proc = subprocess.Popen(sox_args, shell=True)
         sox_proc.wait()
-        if sox_proc != 0:
+        if sox_proc.returncode != 0:
             for line in sox_proc.stderr:
                 sys.stderr.write(line + '\n')
             raise Exception("sox exited with status: {0}".format(sox_proc.returncode))
