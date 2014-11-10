@@ -98,15 +98,15 @@ def raw2bmp(dirname):
             except Exception as e:
                 raise e
 
-def acquire(acqname):
+def acquire(acqname, paramsfile):
     '''Perform a single acquisition, creating output files based on acqname.'''
     # Make sure Ultrasonix is frozen before we start sox.
-    frz_args = ['C:\\bin\\ultracomm.exe', '--params', 'params.cfg', '--freeze-only']
+    frz_args = ['C:\\bin\\ultracomm.exe', '--params', paramsfile, '--freeze-only']
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
 
     rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
-    ult_args = ['C:\\bin\\ultracomm.exe', '--params', 'params.cfg', '--output', acqname]
+    ult_args = ['C:\\bin\\ultracomm.exe', '--params', paramsfile, '--output', acqname]
     rec_proc = subprocess.Popen(rec_args, shell=True)
     #ult_proc = subprocess.Popen(ult_args)
     #ult_proc.wait()
@@ -135,6 +135,11 @@ def separate_channels(acqname):
 if __name__ == '__main__':
     tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
     acqdir = os.path.join(PROJECT_DIR, tstamp)
+    try:
+        params = sys.argv[1]
+    except IndexError:
+        params = os.path.join('.', 'params.cfg')
+    print params
     if not os.path.isdir(acqdir):
         try:
             os.mkdir(acqdir)
@@ -143,7 +148,7 @@ if __name__ == '__main__':
             raise
     try:
         acqbase = os.path.join(acqdir, tstamp + RAWEXT)
-        acquire(acqbase)
+        acquire(acqbase, params)
     except KeyboardInterrupt:
         pass    # don't stop on Ctrl-C in acquire(). This is a hack.
     except Exception as e:
