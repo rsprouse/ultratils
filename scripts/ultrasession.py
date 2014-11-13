@@ -2,7 +2,7 @@
 
 # Run an ultrasound session.
 
-import os, os.path, sys, signal, subprocess
+import os, os.path, sys, signal, subprocess, shutil
 import numpy as np
 import win32api, win32con
 from datetime import datetime
@@ -138,8 +138,7 @@ if __name__ == '__main__':
     try:
         params = sys.argv[1]
     except IndexError:
-        params = os.path.join('.', 'params.cfg')
-    print params
+        params = 'params.cfg'
     if not os.path.isdir(acqdir):
         try:
             os.mkdir(acqdir)
@@ -149,10 +148,16 @@ if __name__ == '__main__':
     try:
         acqbase = os.path.join(acqdir, tstamp + RAWEXT)
         acquire(acqbase, params)
-    except KeyboardInterrupt:
-        pass    # don't stop on Ctrl-C in acquire(). This is a hack.
+    except KeyboardInterrupt: # don't stop on Ctrl-C in acquire(). This is a hack.
+        try:
+            copyparams = os.path.join(acqdir, 'params.cfg')
+            print "Copying ", params, " to ", copyparams
+            shutil.copyfile(params, copyparams)
+        except IOError:
+            print "Could not copy parameter file! ", e
+            raise
     except Exception as e:
-        print "Error in acquiring!", e
+        print "Error in acquiring! ", e
         raise
 #    try:
 #        print "Converting files"
