@@ -10,6 +10,8 @@ from dateutil.tz import tzlocal
 import Image
 from contextlib import closing
 import wave
+import getopt
+import random
 
 # TEMP
 #newcmd = 'C:\\build\\ultracomm.6.1.0\\bin\\Debug\\ultracomm.exe'
@@ -29,6 +31,43 @@ SYNC_CHAN = 1 # audio channel where synchronization signal is found (zero-based)
 NORM_SYNC_THRESH = 0.2  # normalized threshold for detecting synchronizaton signal.
 MIN_SYNC_TIME = 0.0005   # minimum time threshold must be exceeded to detect synchronization signal
                          # With pstretch unit sync signals are about 1 ms
+
+standard_usage_str = '''python ultrasession.py --params paramfile [--stims filename] [--random]'''
+help_usage_str = '''python ultrasession.py --help|-h'''
+
+def usage():
+    print('\n' + standard_usage_str)
+    print('\n' + help_usage_str + '\n')
+
+def help():
+    print('''
+ultrasession.py: Perform one or more ultrasound acquisitions with the
+ultracomm utility. Organize output into timestamped folders, one per
+acquisition. Postprocess synchronization signal and separate audio
+channels into separate speech and synchronization .wav files.
+''')
+    print('\n' + standard_usage_str)
+    print('''
+Required arguments:
+
+    --params paramfile
+    The name of an parameter file to pass to ultracomm.
+
+Optional arguments:
+
+    --stims stimfile
+    The name of a file containing stimuli, one per line. Each stimulus
+    line will correspond to one acquisition, and the stimulus line will be
+    copied to the file stim.txt in the acquisition subdirectory. If no
+    stimulus file is provided then ultrasession will perform a single
+    acquisition and stop.
+
+    --random
+    When this option is provided stimuli will presented in a
+    randomized order. When it is not provided stimuli will be presented they
+    appear in the stimulus file.
+''')
+    
 
 # From https://github.com/mgeier/python-audio/blob/master/audio-files/utility.py
 def pcm2float(sig, dtype=np.float64):
@@ -133,57 +172,92 @@ def separate_channels(acqname):
 
 
 if __name__ == '__main__':
-    tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
-    acqdir = os.path.join(PROJECT_DIR, tstamp)
     try:
-        params = sys.argv[1]
-    except IndexError:
-        params = 'params.cfg'
-    if not os.path.isdir(acqdir):
+        opts, args = getopt.getopt(sys.argv[1:], "p:s:r:h", ["params=", "stims=", "random", "help"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    params = None
+    stimfile = None
+    randomize = False
+    for o, a in opts:
+        if o in ("-p", "--params"):
+            params = a
+        elif o in ("-s", "--stims"):
+            stimfile = a
+        elif o in ("-r", "--random"):
+            randomize = True
+        elif o in ("-h", "--help"):
+            help()
+            sys.exit(0)
+    if params == None:
+        usage()
+        sys.exit(2)
+    stims = []
+    if stimfile == None:
+        stims = ['']
+    else:
+        with open(stimfile, 'rb') as file:
+            for line in file.readlines():
+                stims.append(line.rstrip())
+    if randomize:
+        random.shuffle(stims)
+    for stim in stims:
+        raw_input("Press <Enter> for acquisition.")
+        tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
+        acqdir = os.path.join(PROJECT_DIR, tstamp)
+        if not os.path.isdir(acqdir):
+            try:
+                os.mkdir(acqdir)
+            except:
+                print "Could not create {%s}!".format(acqdir)
+                raise
         try:
-            os.mkdir(acqdir)
-        except:
-            print "Could not create {%s}!".format(acqdir)
+            print("\n\n******************************\n\n")
+            print(stim)
+            print("\n\n******************************\n\n")
+
+            acqbase = os.path.join(acqdir, tstamp + RAWEXT)
+            acquire(acqbase, params)
+        except KeyboardInterrupt: # don't stop on Ctrl-C in acquire(). This is a hack.
+            try:
+                copyparams = os.path.join(acqdir, 'params.cfg')
+                print "Copying ", params, " to ", copyparams
+                shutil.copyfile(params, copyparams)
+                with open(os.path.join(acqdir, 'stim.txt'), 'w+') as stimout:
+                    stimout.write(stim)
+            except IOError:
+                print "Could not copy parameter file or create stim.txt! ", e
+                raise
+        except Exception as e:
+            print "Error in acquiring! ", e
             raise
-    try:
-        acqbase = os.path.join(acqdir, tstamp + RAWEXT)
-        acquire(acqbase, params)
-    except KeyboardInterrupt: # don't stop on Ctrl-C in acquire(). This is a hack.
+    #    try:
+    #        print "Converting files"
+    #        raw2bmp(acqdir)
+    #        print "Done converting"
+    #    except KeyboardInterrupt:
+    #        pass    # don't stop on Ctrl-C in acquire(). This is a hack.
+    #    except Exception as e:
+    #        print "Error in converting raw image files to .bmp!", e
+    #        raise
+    
         try:
-            copyparams = os.path.join(acqdir, 'params.cfg')
-            print "Copying ", params, " to ", copyparams
-            shutil.copyfile(params, copyparams)
-        except IOError:
-            print "Could not copy parameter file! ", e
+            print "Separating audio channels"
+            separate_channels(acqbase)
+        except Exception as e:
+            print "Error in separating audio channels", e
             raise
-    except Exception as e:
-        print "Error in acquiring! ", e
-        raise
-#    try:
-#        print "Converting files"
-#        raw2bmp(acqdir)
-#        print "Done converting"
-#    except KeyboardInterrupt:
-#        pass    # don't stop on Ctrl-C in acquire(). This is a hack.
-#    except Exception as e:
-#        print "Error in converting raw image files to .bmp!", e
-#        raise
-
-    try:
-        print "Separating audio channels"
-        separate_channels(acqbase)
-    except Exception as e:
-        print "Error in separating audio channels", e
-        raise
-
-    try:
-        print "Creating synchronization textgrid"
-        wavname = acqbase + '.wav'
-        print "synchronizing ", wavname
-        sync2text(wavname)
-        print "Created synchronization text file"
-    except Exception as e:
-        print "Error in creating synchronization textgrid!", e
-        raise
+    
+        try:
+            print "Creating synchronization textgrid"
+            wavname = acqbase + '.wav'
+            print "synchronizing ", wavname
+            sync2text(wavname)
+            print "Created synchronization text file"
+        except Exception as e:
+            print "Error in creating synchronization textgrid!", e
+            raise
 
 
