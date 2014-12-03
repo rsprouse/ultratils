@@ -32,7 +32,7 @@ NORM_SYNC_THRESH = 0.2  # normalized threshold for detecting synchronizaton sign
 MIN_SYNC_TIME = 0.0005   # minimum time threshold must be exceeded to detect synchronization signal
                          # With pstretch unit sync signals are about 1 ms
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--stims filename] [--random]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--stims filename] [--ultracomm ultracomm_cmd] [--random]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -42,8 +42,8 @@ def usage():
 def help():
     print('''
 ultrasession.py: Perform one or more ultrasound acquisitions with the
-ultracomm utility. Organize output into timestamped folders, one per
-acquisition. Postprocess synchronization signal and separate audio
+ultracomm command line utility. Organize output into timestamped folders,
+one per acquisition. Postprocess synchronization signal and separate audio
 channels into separate speech and synchronization .wav files.
 ''')
     print('\n' + standard_usage_str)
@@ -61,6 +61,11 @@ Optional arguments:
     copied to the file stim.txt in the acquisition subdirectory. If no
     stimulus file is provided then ultrasession will perform a single
     acquisition and stop.
+
+    --ultracomm ultracomm_cmd
+    The name of the ultracomm command to use to connect the Ultrasonix,
+    including path, if desired. If this option is not provided the script
+    will default to 'ultracomm'.
 
     --random
     When this option is provided stimuli will presented in a
@@ -137,15 +142,15 @@ def raw2bmp(dirname):
             except Exception as e:
                 raise e
 
-def acquire(acqname, paramsfile):
+def acquire(acqname, paramsfile, ultracomm_cmd):
     '''Perform a single acquisition, creating output files based on acqname.'''
     # Make sure Ultrasonix is frozen before we start sox.
-    frz_args = ['C:\\bin\\ultracomm.exe', '--params', paramsfile, '--freeze-only']
+    frz_args = [ultracomm_cmd, '--params', paramsfile, '--freeze-only']
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
 
     rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
-    ult_args = ['C:\\bin\\ultracomm.exe', '--params', paramsfile, '--output', acqname]
+    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname]
     rec_proc = subprocess.Popen(rec_args, shell=True)
     #ult_proc = subprocess.Popen(ult_args)
     #ult_proc.wait()
@@ -173,19 +178,22 @@ def separate_channels(acqname):
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:s:r:h", ["params=", "stims=", "random", "help"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:s:u:r:h", ["params=", "stims=", "ultracomm=", "random", "help"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
     params = None
     stimfile = None
+    ultracomm = 'ultracomm'
     randomize = False
     for o, a in opts:
         if o in ("-p", "--params"):
             params = a
         elif o in ("-s", "--stims"):
             stimfile = a
+        elif o in ("-u", "--ultracomm"):
+            ultracomm = a
         elif o in ("-r", "--random"):
             randomize = True
         elif o in ("-h", "--help"):
@@ -219,7 +227,7 @@ if __name__ == '__main__':
             print("\n\n******************************\n\n")
 
             acqbase = os.path.join(acqdir, tstamp + RAWEXT)
-            acquire(acqbase, params)
+            acquire(acqbase, params, ultracomm)
         except KeyboardInterrupt: # don't stop on Ctrl-C in acquire(). This is a hack.
             try:
                 copyparams = os.path.join(acqdir, 'params.cfg')
