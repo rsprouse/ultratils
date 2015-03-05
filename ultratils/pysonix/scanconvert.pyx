@@ -97,16 +97,13 @@ probe = Probe object
         self.indt = indt
         self.indr = indr
 
-    def as_bmp(self, frame=None):
+    def as_bmp(self, frame):
         """Return bpr frame data as a converted bitmap.
 frame = frame of bpr data
-
-If no frame is provided, an empty frame of the same size as other bpr frames will be created.
 """
-
-        if frame is None:
-            data = np.zeros([self.header.h, self.header.w], dtype=np.long) + 128
-        else:
-            data = frame.astype(np.long)
+        data = frame.astype(np.long)
         return scanconvert(data, indt=self.indt, indr=self.indr)
 
+    def default_bpr_frame(self, default=0):
+        """Return a frame of bpr data the same shape as defined by the header, filled with a default value."""
+        return  np.zeros([self.header.h, self.header.w]) + default

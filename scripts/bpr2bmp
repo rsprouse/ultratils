@@ -87,14 +87,19 @@ def bitmap_for_bpr_exists(bpr):
 def convert_to_bmp(bpr, probe, auto_index=False):
     """Convert the frames in a bpr file to bitmaps."""
     barename = os.path.splitext(bpr)[0]   # get filename without extension
-    idxfile = "{}.idx.txt".format(bpr)
-    if not auto_index:
-        indexes = np.loadtxt(idxfile, dtype=int)
     bprreader = ultratils.pysonix.bprreader.BprReader(bpr)
     header = bprreader.header
-    
     converter = ultratils.pysonix.scanconvert.Converter(header, probe)
-    last_frame = -1
+
+    if not auto_index:
+        idxfile = "{}.idx.txt".format(bpr)
+        indexes = np.loadtxt(idxfile, dtype=int)
+        # Create a gray image as a skipped frame filler.
+        blankbpr = converter.default_bpr_frame(128)
+        blank = converter.as_bmp(blankbpr).astype(np.uint8)
+        blank = Image.fromarray(np.flipud(blank))
+        last_frame = -1
+
     for idx in range(header.nframes):
         data = np.flipud(converter.as_bmp(bprreader.get_frame()))
         frame = Image.fromarray(data.astype(np.uint8))
@@ -103,7 +108,6 @@ def convert_to_bmp(bpr, probe, auto_index=False):
         else:
             for n in range(indexes[idx] - last_frame - 1):
                 last_frame += 1
-                blank = Image.fromarray(np.flipud(converter.as_bmp().astype(np.uint8)))
                 blank.save("{:s}.{:d}.bmp".format(barename, last_frame))
             last_frame += 1
             frame.save("{:s}.{:d}.bmp".format(barename, last_frame))
