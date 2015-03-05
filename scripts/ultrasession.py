@@ -4,14 +4,15 @@
 
 import os, os.path, sys, signal, subprocess, shutil
 import numpy as np
-import win32api, win32con
+#import win32api, win32con
 from datetime import datetime
 from dateutil.tz import tzlocal
 import Image
 from contextlib import closing
-import wave
 import getopt
 import random
+import ultratils.disk_streamer
+import time
 
 # TEMP
 #newcmd = 'C:\\build\\ultracomm.6.1.0\\bin\\Debug\\ultracomm.exe'
@@ -149,17 +150,25 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
 
-    rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
     ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname]
-    rec_proc = subprocess.Popen(rec_args, shell=True)
+
+    streamer = ultratils.disk_streamer.DiskStreamer()
+    streamer.start_stream()
+    ult = subprocess.Popen(ult_args)
+    while ult.poll is None:
+        time.sleep(0.1)
+    streamer.stop_stream()
+    streamer.close()
+    #rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
+    #rec_proc = subprocess.Popen(rec_args, shell=True)
     #ult_proc = subprocess.Popen(ult_args)
     #ult_proc.wait()
-    subprocess.check_call(ult_args)
+    #subprocess.check_call(ult_args)
     # Stop sox by sending Ctrl-C to the console
-    print "***********************************"
-    print "Press Ctrl-C to stop sox recording."
-    print "***********************************"
-    rec_proc.wait()
+    #print "***********************************"
+    #print "Press Ctrl-C to stop sox recording."
+    #print "***********************************"
+    #rec_proc.wait()
     #win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
 
 def separate_channels(acqname):
