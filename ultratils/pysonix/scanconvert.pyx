@@ -104,7 +104,7 @@ frame = frame of bpr data
 If no frame is provided, an empty frame of the same size as other bpr frames will be created.
 """
 
-        if frame == None:
+        if frame is None:
             data = np.zeros([self.header.h, self.header.w], dtype=np.long) + 128
         else:
             data = frame.astype(np.long)
