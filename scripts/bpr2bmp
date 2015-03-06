@@ -12,6 +12,7 @@ import ultratils.pysonix.scanconvert
 import Image
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import time
 
 VERSION = '0.2.0'
 
@@ -100,6 +101,7 @@ def convert_to_bmp(bpr, probe, auto_index=False):
         blank = Image.fromarray(np.flipud(blank))
         last_frame = -1
 
+    start = time.time()
     for idx in range(header.nframes):
         data = np.flipud(converter.as_bmp(bprreader.get_frame()))
         frame = Image.fromarray(data.astype(np.uint8))
@@ -111,6 +113,9 @@ def convert_to_bmp(bpr, probe, auto_index=False):
                 blank.save("{:s}.{:d}.bmp".format(barename, last_frame))
             last_frame += 1
             frame.save("{:s}.{:d}.bmp".format(barename, last_frame))
+        if idx % 100 == 0:
+            dur = time.time() - start
+            print "Processed {:d} frames in {:0.4f}; {:0.4f} secs/frame".format(idx+1,dur,dur/(idx+1))
 
 if __name__ == '__main__':
     try:
@@ -168,10 +173,10 @@ if __name__ == '__main__':
             if verbose:
                 sys.stderr.write("Creating bitmaps for {:s}.\n".format(fname))
 
-            try:
-                convert_to_bmp(fname, probe, auto_index)
-            except Exception as e:
-                sys.stderr.write("Error in converting {:s}: {:s}.\n".format(fname, e))
+#            try:
+            convert_to_bmp(fname, probe, auto_index)
+#            except Exception as e:
+#                sys.stderr.write("Error in converting {:s}: {:s}.\n".format(fname, e))
 
     if verbose:
         print "Ending at: ", datetime.datetime.now().time()
