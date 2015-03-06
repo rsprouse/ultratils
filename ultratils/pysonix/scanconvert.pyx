@@ -87,22 +87,35 @@ probe = Probe object
         indt = np.zeros(xreg.shape, dtype=NPFLOAT)
         indr = np.zeros(xreg.shape, dtype=NPFLOAT)
         # TODO: vectorize?
+        bmp_index = []
+        bpr_index = []
         for xCntr in np.arange(0, xreg.shape[1]):
             for yCntr in np.arange(0, yreg.shape[0]):
                 [theta[yCntr, xCntr], rho[yCntr, xCntr]] = cart2pol(xreg[yCntr, xCntr], yreg[yCntr, xCntr])
-                indt[yCntr, xCntr] = np.floor(theta[yCntr, xCntr]/(self.lpitch/self.radius)+header.w/2)+1
-                indr[yCntr, xCntr] = np.floor((rho[yCntr, xCntr]-self.radius)/self.apitch)+1
+                indt = np.int(np.floor(theta[yCntr, xCntr]/(self.lpitch/self.radius)+header.w/2)+1)
+                indr = np.int(np.floor((rho[yCntr, xCntr]-self.radius)/self.apitch)+1)
+                if indt>0 and indt<header.w and indr>0 and indr<header.h:
+                    bmp_index.append(np.ravel_multi_index((yCntr, xCntr), xreg.shape))
+                    bpr_index.append(np.ravel_multi_index((indr, indt), (header.h, header.w)))
         self.theta = theta
         self.rho = rho
         self.indt = indt
         self.indr = indr
+        self.xreg = xreg
+        self.yreg = yreg
+        self.bmp_index = bmp_index
+        self.bpr_index = bpr_index
+        self.bmp = np.zeros(self.xreg.shape, dtype=NPLONG)
 
     def as_bmp(self, frame):
         """Return bpr frame data as a converted bitmap.
 frame = frame of bpr data
 """
-        data = frame.astype(np.long)
-        return scanconvert(data, indt=self.indt, indr=self.indr)
+        #data = frame.astype(np.long)
+        self.bmp[:] = 0
+        self.bmp.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
+        return self.bmp
+        #return scanconvert(data, indt=self.indt, indr=self.indr)
 
     def default_bpr_frame(self, default=0):
         """Return a frame of bpr data the same shape as defined by the header, filled with a default value."""
