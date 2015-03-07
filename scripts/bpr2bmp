@@ -85,6 +85,7 @@ def bitmap_for_bpr_exists(bpr):
     """Return true if one or more bitmap files exist for a .bpr file."""
     return os.path.isfile(os.path.splitext(bpr)[0] + '.0.bmp')
 
+@profile
 def convert_to_bmp(bpr, probe, auto_index=False):
     """Convert the frames in a bpr file to bitmaps."""
     barename = os.path.splitext(bpr)[0]   # get filename without extension
@@ -102,6 +103,8 @@ def convert_to_bmp(bpr, probe, auto_index=False):
         last_frame = -1
 
     start = time.time()
+    lasttime = start
+    lastcnt = -1
     for idx in range(header.nframes):
         data = np.flipud(converter.as_bmp(bprreader.get_frame()))
         frame = Image.fromarray(data.astype(np.uint8))
@@ -113,9 +116,14 @@ def convert_to_bmp(bpr, probe, auto_index=False):
                 blank.save("{:s}.{:d}.bmp".format(barename, last_frame))
             last_frame += 1
             frame.save("{:s}.{:d}.bmp".format(barename, last_frame))
-        if idx % 100 == 0:
-            dur = time.time() - start
-            print "Processed {:d} frames in {:0.4f}; {:0.4f} secs/frame".format(idx+1,dur,dur/(idx+1))
+        if (idx-1) % 100 == 0:
+            proc = idx - lastcnt
+            lastcnt += 100
+            mytime = time.time()
+            cumdur = mytime - start
+            insdur = mytime - lasttime
+            lasttime = mytime
+            print "{:d} frames. Inst {:0.4f} ({:0.4f} s/f); Cum {:0.4f} ({:0.4f} s/f)".format(idx+1,insdur,insdur/100.0,cumdur,cumdur/(idx+1))
 
 if __name__ == '__main__':
     try:
