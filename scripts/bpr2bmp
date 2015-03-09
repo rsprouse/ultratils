@@ -116,14 +116,14 @@ def convert_to_bmp(bpr, probe, auto_index=False):
                 blank.save("{:s}.{:d}.bmp".format(barename, last_frame))
             last_frame += 1
             frame.save("{:s}.{:d}.bmp".format(barename, last_frame))
-        if (idx-1) % 100 == 0:
-            proc = idx - lastcnt
-            lastcnt += 100
-            mytime = time.time()
-            cumdur = mytime - start
-            insdur = mytime - lasttime
-            lasttime = mytime
-            print "{:d} frames. Inst {:0.4f} ({:0.4f} s/f); Cum {:0.4f} ({:0.4f} s/f)".format(idx+1,insdur,insdur/100.0,cumdur,cumdur/(idx+1))
+#        if (idx-1) % 100 == 0:
+#            proc = idx - lastcnt
+#            lastcnt += 100
+#            mytime = time.time()
+#            cumdur = mytime - start
+#            insdur = mytime - lasttime
+#            lasttime = mytime
+#            print "{:d} frames. Inst {:0.4f} ({:0.4f} s/f); Cum {:0.4f} ({:0.4f} s/f)".format(idx+1,insdur,insdur/100.0,cumdur,cumdur/(idx+1))
 
 if __name__ == '__main__':
     try:
