@@ -145,7 +145,7 @@ def raw2bmp(dirname):
 
 def acquire(acqname, paramsfile, ultracomm_cmd):
     '''Perform a single acquisition, creating output files based on acqname.'''
-    # Make sure Ultrasonix is frozen before we start sox.
+    # Make sure Ultrasonix is frozen before we start recording.
     frz_args = [ultracomm_cmd, '--params', paramsfile, '--freeze-only']
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
@@ -155,9 +155,8 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     streamer = ultratils.disk_streamer.DiskStreamer("{}.wav".format(acqname))
     streamer.start_stream()
     ult = subprocess.Popen(ult_args)
-    time.sleep(0.1)
-    print "*************************POLLING*******************"
     while ult.poll() is None:
+        # TODO: check output status?
         time.sleep(0.1)
     streamer.stop_stream()
     streamer.close()
