@@ -20,7 +20,6 @@ class DiskStreamer(object):
         self.wf = wf
 
         def callback(in_data, frame_count, time_info, status):
-            print "in callback"
             self.wf.writeframes(b''.join(in_data))
             return (in_data, pyaudio.paContinue)
 
