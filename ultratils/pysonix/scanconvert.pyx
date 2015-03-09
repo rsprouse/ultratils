@@ -111,10 +111,10 @@ probe = Probe object
         """Return bpr frame data as a converted bitmap.
 frame = frame of bpr data
 """
-        #data = frame.astype(np.long)
         self.bmp[:] = 0
         self.bmp.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
         return self.bmp
+        #data = frame.astype(np.long)
         #return scanconvert(data, indt=self.indt, indr=self.indr)
 
     def default_bpr_frame(self, default=0):
