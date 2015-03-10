@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# A simple script that waits for user input.
+
+echo "Press Enter key to continue"
+read keypress
