@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime
 from dateutil.tz import tzlocal
 import Image
+import wave
 from contextlib import closing
 import getopt
 import random
