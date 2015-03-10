@@ -222,7 +222,6 @@ if __name__ == '__main__':
 
             acqbase = os.path.join(acqdir, tstamp + RAWEXT)
             acquire(acqbase, params, ultracomm)
-        except KeyboardInterrupt: # don't stop on Ctrl-C in acquire(). This is a hack.
             try:
                 copyparams = os.path.join(acqdir, 'params.cfg')
                 print "Copying ", params, " to ", copyparams
