@@ -32,7 +32,7 @@ NORM_SYNC_THRESH = 0.2  # normalized threshold for detecting synchronizaton sign
 MIN_SYNC_TIME = 0.0005   # minimum time threshold must be exceeded to detect synchronization signal
                          # With pstretch unit sync signals are about 1 ms
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--stims filename] [--ultracomm ultracomm_cmd] [--random]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--stims filename] [--ultracomm ultracomm_cmd] [--random] [--no-prompt]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -71,6 +71,12 @@ Optional arguments:
     When this option is provided stimuli will presented in a
     randomized order. When it is not provided stimuli will be presented they
     appear in the stimulus file.
+
+    --no-prompt
+    When this option is provided the operator will not be prompted to
+    press the Enter key to start an acquisition. Acquisition will begin
+    immediately.
+    
 ''')
     
 
@@ -173,7 +179,7 @@ def separate_channels(acqname):
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:s:u:r:h", ["params=", "stims=", "ultracomm=", "random", "help"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:s:u:r:h", ["params=", "stims=", "ultracomm=", "random", "help", "no-prompt"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -182,6 +188,7 @@ if __name__ == '__main__':
     stimfile = None
     ultracomm = 'ultracomm'
     randomize = False
+    no_prompt = False
     for o, a in opts:
         if o in ("-p", "--params"):
             params = a
@@ -194,6 +201,8 @@ if __name__ == '__main__':
         elif o in ("-h", "--help"):
             help()
             sys.exit(0)
+        elif o == "--no-prompt":
+            no_prompt = True
     if params == None:
         usage()
         sys.exit(2)
@@ -207,7 +216,8 @@ if __name__ == '__main__':
     if randomize:
         random.shuffle(stims)
     for stim in stims:
-        raw_input("Press <Enter> for acquisition.")
+        if no_prompt is False:
+            raw_input("Press <Enter> for acquisition.")
         tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
         acqdir = os.path.join(PROJECT_DIR, tstamp)
         if not os.path.isdir(acqdir):
@@ -217,9 +227,10 @@ if __name__ == '__main__':
                 print "Could not create {%s}!".format(acqdir)
                 raise
         try:
-            print("\n\n******************************\n\n")
-            print(stim)
-            print("\n\n******************************\n\n")
+            if stim != '':
+                print("\n\n******************************\n\n")
+                print(stim)
+                print("\n\n******************************\n\n")
 
             acqbase = os.path.join(acqdir, tstamp + RAWEXT)
             acquire(acqbase, params, ultracomm)

@@ -1,6 +1,5 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
 # A simple script that waits for user input.
 
-echo "Press Enter key to continue"
-read keypress
+raw_input("Press Enter key to continue")
