@@ -25,8 +25,6 @@ import time
 #    os.rename(newcmd, oldcmd)
 PROJECT_DIR = "C:\\Users\\lingguest\\acq"
 RAWEXT = ".bpr"
-#IMGDIM = (462,767)   # Type 2?
-IMGDIM = (480,640)   # Type 4
 
 SYNC_CHAN = 1 # audio channel where synchronization signal is found (zero-based)
 NORM_SYNC_THRESH = 0.2  # normalized threshold for detecting synchronizaton signal.
@@ -129,20 +127,6 @@ create a text file that contains frame numbers and time stamps for each pulse.''
         for idx,t in enumerate(synctimes):
             fout.write("{0:0.4f}\t{1:d}\n".format(t,idx))
         
-
-def raw2bmp(dirname):
-    '''Convert the raw image files in dirname to .bmp files.'''
-    for f in os.listdir(dirname):
-        if f.endswith(RAWEXT):
-            try:
-                fin = open(os.path.join(dirname,f), 'rb')
-                rect = np.flipud(np.fromfile(file=fin, dtype=np.uint8).reshape(IMGDIM))  # for type 4
-                #rect = np.transpose(np.flipud(np.fromfile(file=fin, dtype=np.uint8).reshape(IMGDIM)))
-                bmpname = os.path.join(dirname,f).replace(RAWEXT,'.bmp')
-                Image.fromarray(rect).save(bmpname)
-            except Exception as e:
-                raise e
-
 def acquire(acqname, paramsfile, ultracomm_cmd):
     '''Perform a single acquisition, creating output files based on acqname.'''
     # Make sure Ultrasonix is frozen before we start recording.
