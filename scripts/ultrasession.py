@@ -140,15 +140,29 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     frz_args = [ultracomm_cmd, '--params', paramsfile, '--freeze-only']
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
+    rc = frz_proc.returncode
+    if rc != 0:
+        raise RuntimeError(
+            "Could not freeze ultrasonix. Returncode {:d}".format(rc)
+        )
 
     ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname]
 
     streamer = ultratils.disk_streamer.DiskStreamer("{}.wav".format(acqname))
     streamer.start_stream()
-    ult = subprocess.Popen(ult_args)
-    while ult.poll() is None:
-        # TODO: check output status?
-        time.sleep(0.1)
+    ult_proc = subprocess.Popen(ult_args)
+    raw_input('Press Enter to stop acquiring.')   # Wait for input
+    try:
+        win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
+        ult_proc.wait()
+    except KeyboardInterrupt:
+        pass   # Ignore Ctrl-C in this script
+    rc = ult_proc.returncode
+    if rc != 0:
+        raise RuntimeError(
+            "Error in acquiring from ultrasonix. Returncode {:d}".format(rc)
+        )
+
     streamer.stop_stream()
     streamer.close()
     #rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
