@@ -14,6 +14,7 @@ import getopt
 import random
 import ultratils.disk_streamer
 import time
+import socket
 
 # TEMP
 #newcmd = 'C:\\build\\ultracomm.6.1.0\\bin\\Debug\\ultracomm.exe'
@@ -133,7 +134,7 @@ create a text file that contains frame numbers and time stamps for each pulse.''
     with open(txtname, 'w') as fout:
         for idx,t in enumerate(synctimes):
             fout.write("{0:0.4f}\t{1:d}\n".format(t,idx))
-        
+
 def acquire(acqname, paramsfile, ultracomm_cmd):
     '''Perform a single acquisition, creating output files based on acqname.'''
     # Make sure Ultrasonix is frozen before we start recording.
@@ -141,16 +142,27 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
 
-    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname]
-
+    # Start recording the audio channels.
     streamer = ultratils.disk_streamer.DiskStreamer("{}.wav".format(acqname))
     streamer.start_stream()
-    ult = subprocess.Popen(ult_args)
-    while ult.poll() is None:
-        # TODO: check output status?
-        time.sleep(0.1)
+
+    # Invoke ultracomm to begin acquiring ultrasound data.
+    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname]
+    ult = subprocess.Popen(ult_args, shell=True, stdin=subprocess.PIPE)
+
+    # Create a socket to communicate with ultracomm. We don't need to send() any
+    # data to ultracomm. Closing the socket signals the end of the ultrasound
+    # acquisition.
+    mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    mysocket.connect(("localhost", 50047))
+    raw_input("Press Enter to stop acquisition.")
+    mysocket.shutdown(socket.SHUT_RDWR)
+    mysocket.close()
+
+    # Stop audio acquisition.
     streamer.stop_stream()
     streamer.close()
+
     #rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
     #rec_proc = subprocess.Popen(rec_args, shell=True)
     #ult_proc = subprocess.Popen(ult_args)
