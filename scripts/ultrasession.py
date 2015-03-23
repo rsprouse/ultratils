@@ -145,7 +145,7 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
 
     streamer = ultratils.disk_streamer.DiskStreamer("{}.wav".format(acqname))
     streamer.start_stream()
-    ult = subprocess.Popen(ult_args)
+    ult = subprocess.Popen(ult_args, shell=True, stdin=subprocess.PIPE)
     while ult.poll() is None:
         # TODO: check output status?
         time.sleep(0.1)
