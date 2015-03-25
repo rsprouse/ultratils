@@ -11,10 +11,10 @@ import random
 #import ultratils.disk_streamer
 import time
 
-PROJECT_DIR = "C:\\Users\\lingguest\\acq"
+PROJECT_DIR = r"C:\Users\lingguest\acq"
 RAWEXT = ".bpr"
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--stims filename] [--ultracomm ultracomm_cmd] [--random] [--no-prompt]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--ultracomm ultracomm_cmd] [--random] [--no-prompt]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -36,6 +36,10 @@ Required arguments:
     The name of an parameter file to pass to ultracomm.
 
 Optional arguments:
+
+    --datadir dir
+    The name of a directory where acquisitions will be collected.
+    Default is %s.
 
     --stims stimfile
     The name of a file containing stimuli, one per line. Each stimulus
@@ -59,7 +63,7 @@ Optional arguments:
     press the Enter key to start an acquisition. Acquisition will begin
     immediately.
     
-''')
+'''.format(PROJECT_DIR))
     
 
 def acquire(acqname, paramsfile, ultracomm_cmd):
@@ -101,12 +105,13 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:s:u:r:h", ["params=", "stims=", "ultracomm=", "random", "help", "no-prompt"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "random", "help", "no-prompt"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
     params = None
+    datadir = PROJECT_DIR
     stimfile = None
     ultracomm = 'ultracomm'
     randomize = False
@@ -114,6 +119,8 @@ if __name__ == '__main__':
     for o, a in opts:
         if o in ("-p", "--params"):
             params = a
+        elif o in ("-d", "--datadir"):
+            datadir = a
         elif o in ("-s", "--stims"):
             stimfile = a
         elif o in ("-u", "--ultracomm"):
@@ -141,7 +148,7 @@ if __name__ == '__main__':
         if no_prompt is False:
             raw_input("Press <Enter> for acquisition.")
         tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
-        acqdir = os.path.join(PROJECT_DIR, tstamp)
+        acqdir = os.path.join(datadir, tstamp)
         if not os.path.isdir(acqdir):
             try:
                 os.mkdir(acqdir)
