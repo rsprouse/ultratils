@@ -2,13 +2,10 @@
 
 # Run an ultrasound session.
 
-import os, os.path, sys, signal, subprocess, shutil
-import numpy as np
+import os, os.path, sys, subprocess, shutil
 import win32api, win32con, win32file
 from datetime import datetime
 from dateutil.tz import tzlocal
-import wave
-from contextlib import closing
 import getopt
 import random
 #import ultratils.disk_streamer
@@ -16,11 +13,6 @@ import time
 
 PROJECT_DIR = "C:\\Users\\lingguest\\acq"
 RAWEXT = ".bpr"
-
-SYNC_CHAN = 1 # audio channel where synchronization signal is found (zero-based)
-NORM_SYNC_THRESH = 0.2  # normalized threshold for detecting synchronizaton signal.
-MIN_SYNC_TIME = 0.0005   # minimum time threshold must be exceeded to detect synchronization signal
-                         # With pstretch unit sync signals are about 1 ms
 
 standard_usage_str = '''python ultrasession.py --params paramfile [--stims filename] [--ultracomm ultracomm_cmd] [--random] [--no-prompt]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
@@ -70,60 +62,6 @@ Optional arguments:
 ''')
     
 
-# From https://github.com/mgeier/python-audio/blob/master/audio-files/utility.py
-def pcm2float(sig, dtype=np.float64):
-    '''Convert integer pcm data to floating point.'''
-    sig = np.asarray(sig)  # make sure it's a NumPy array
-    assert sig.dtype.kind == 'i', "'sig' must be an array of signed integers!"
-    dtype = np.dtype(dtype)  # allow string input (e.g. 'f')
-    # Note that 'min' has a greater (by 1) absolute value than 'max'!
-    # Therefore, we use 'min' here to avoid clipping.
-    return sig.astype(dtype) / dtype.type(-np.iinfo(sig.dtype).min)
-
-def loadsync(wavfile, chan):
-    '''Load synchronization signal from an audio file channel and return as a normalized
-(range [-1 1]) 1D numpy array.'''
-    with closing(wave.open(wavfile)) as w:
-        nchannels = w.getnchannels()
-        assert w.getsampwidth() == 2
-        data = w.readframes(w.getnframes())
-        rate = w.getframerate()
-    sig = np.frombuffer(data, dtype='<i2').reshape(-1, nchannels)
-    return (pcm2float(sig[:,chan], np.float32), rate)
-
-def sync_pstretch(sig, threshold, min_run):
-    '''Find and return indexes of synchronization points from pstretch unit,
-defined as the start of a sequence of elements of at least min_run length,
-all of which are above threshold.'''
-    # Implementation: Create a boolean integer array where data points that
-    # exceed the threshold == 1, below == 0, then diff the boolean array.
-    # Sequences of true (above threshold) elements start where the diff == 1,
-    # and the sequence ends (falls below threshold) where the diff == -1.
-    # Circumfixing the array with zero values ensures there will be an equal
-    # number of run starts and ends even if the signal starts or ends with
-    # values above the threshold.
-    # TODO: auto threshold (%age of max?)
-    bounded = np.hstack(([0], sig, [0]))
-    thresh_sig = (bounded > threshold).astype(int)
-    difs = np.diff(thresh_sig)
-    run_starts = np.where(difs == 1)[0]
-    run_ends = np.where(difs == -1)[0]
-    return run_starts[np.where((run_ends - run_starts) > min_run)[0]]
-
-def sync2text(wavname):
-    '''Find the synchronization signals in an acquisition's .wav file and
-create a text file that contains frame numbers and time stamps for each pulse.'''
-    (syncsig, rate) = loadsync(wavname, SYNC_CHAN)
-    syncsamp = sync_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
-    synctimes = np.round(syncsamp * 1.0 / rate, decimals=4)
-    print "Found {0:d} synchronization pulses.".format(len(syncsamp))
-    dtimes = np.diff(synctimes)
-    print "Frame durations range [{0:1.4f} {1:1.4f}].".format(dtimes.min(), dtimes.max())
-    txtname = wavname.replace('.wav', '.sync.txt')
-    with open(txtname, 'w') as fout:
-        for idx,t in enumerate(synctimes):
-            fout.write("{0:0.4f}\t{1:d}\n".format(t,idx))
-        
 def acquire(acqname, paramsfile, ultracomm_cmd):
     '''Perform a single acquisition, creating output files based on acqname.'''
     # Make sure Ultrasonix is frozen before we start recording.
@@ -160,20 +98,6 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     except KeyboardInterrupt:
         pass
     rec_proc.wait()
-
-def separate_channels(acqname):
-    '''Separate the left and right channels from the acquisition .wav.'''
-    wavname = acqname + '.wav'
-    for num in ['1', '2']:
-        ch = acqname + '.ch' + num + '.wav'
-        sox_args = ['C:\\bin\\sox.exe', wavname, ch, 'remix', num]
-        sox_proc = subprocess.Popen(sox_args, shell=True)
-        sox_proc.wait()
-        if sox_proc.returncode != 0:
-            for line in sox_proc.stderr:
-                sys.stderr.write(line + '\n')
-            raise Exception("sox exited with status: {0}".format(sox_proc.returncode))
-
 
 if __name__ == '__main__':
     try:
@@ -247,21 +171,21 @@ if __name__ == '__main__':
             print "Error in acquiring! ", e
             raise
     
-        try:
-            print "Separating audio channels"
-            separate_channels(acqbase)
-        except Exception as e:
-            print "Error in separating audio channels", e
-            raise
-    
-        try:
-            print "Creating synchronization textgrid"
-            wavname = acqbase + '.wav'
-            print "synchronizing ", wavname
-            sync2text(wavname)
-            print "Created synchronization text file"
-        except Exception as e:
-            print "Error in creating synchronization textgrid!", e
-            raise
-
-
+#        try:
+#            print "Separating audio channels"
+#            separate_channels(acqbase)
+#        except Exception as e:
+#            print "Error in separating audio channels", e
+#            raise
+#    
+#        try:
+#            print "Creating synchronization textgrid"
+#            wavname = acqbase + '.wav'
+#            print "synchronizing ", wavname
+#            sync2text(wavname)
+#            print "Created synchronization text file"
+#        except Exception as e:
+#            print "Error in creating synchronization textgrid!", e
+#            raise
+#
+#
