@@ -14,6 +14,7 @@ import getopt
 import random
 import ultratils.disk_streamer
 import time
+import win32file
 
 # TEMP
 #newcmd = 'C:\\build\\ultracomm.6.1.0\\bin\\Debug\\ultracomm.exe'
@@ -141,14 +142,26 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
 
-    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname]
+    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname, '--named-pipe']
 
     streamer = ultratils.disk_streamer.DiskStreamer("{}.wav".format(acqname))
     streamer.start_stream()
-    ult = subprocess.Popen(ult_args, shell=True, stdin=subprocess.PIPE)
-    while ult.poll() is None:
-        # TODO: check output status?
-        time.sleep(0.1)
+    ult_proc = subprocess.Popen(ult_args)
+    pipename = r'\\.\pipe\ultracomm'
+    start = time.time()
+    fhandle = None
+    while not fhandle:
+        try:
+            fhandle = win32file.CreateFile(pipename, win32file.GENERIC_WRITE, 0, None, win32file.OPEN_EXISTING, 0, None)
+        except:
+            time.sleep(0.1)
+            fhandle = None
+            if time.time() - start > 10:
+                raise IOError("Could not connect to named pipe")
+    raw_input("Press Enter to end ultrasession.")
+    win32file.WriteFile(fhandle, 'END')
+    while ult_proc.poll() is None:
+        time.sleep(0.01)
     streamer.stop_stream()
     streamer.close()
     #rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
