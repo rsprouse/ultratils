@@ -19,7 +19,7 @@ standard_usage_str = """sepchan [optional args] file1.wav [fileN.wav...]        
 Optional arguments:
 
   --force
-    Overwrite existing .bmp files in seek mode.
+    Overwrite existing .wav files in seek mode.
 
   --verbose
     Display verbose messages.
