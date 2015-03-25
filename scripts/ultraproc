@@ -1,0 +1,55 @@
+import os, sys, subprocess
+
+'''Quick and dirty script for running ultrasound postprocessing steps.'''
+
+datadir = sys.argv[1]
+
+sepchan_cmd = os.path.normpath(
+    'C:/Anaconda/Scripts/sepchan'
+)
+
+sepchan_args = [
+    'python',
+    sepchan_cmd,
+    '--seek',
+    datadir
+]
+
+sepchan_proc = subprocess.check_call(sepchan_args,
+                                 shell=True
+)
+
+psync_cmd = os.path.normpath(
+    'C:/Anaconda/Scripts/psync'
+)
+
+psync_args = [
+    'python',
+    psync_cmd,
+    '--channel',
+    '0',
+    '--seek',
+    datadir
+]
+
+psync_proc = subprocess.check_call(psync_args,
+                                 shell=True
+)
+
+bpr_cmd = os.path.normpath(
+    'C:/Anaconda/Scripts/bpr2bmp'
+)
+
+bpr_args = [
+    'python',
+    bpr_cmd,
+    '--probe',
+    '19',
+    '--seek',
+    datadir
+]
+
+bpr_proc = subprocess.check_call(bpr_args,
+                                 shell=True
+)
+
