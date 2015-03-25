@@ -1,0 +1,138 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''Detect synchronization signal from pstretch unit.'''
+
+import os, sys, os.path, fnmatch
+import sys
+import subprocess
+import getopt
+from datetime import datetime
+import ultratils.psync
+
+VERSION = '0.2.0'
+SOX_CMD = r'C:\bin\sox.exe'
+
+standard_usage_str = """psync --channel channel [optional args] file1.wav [fileN.wav...]           # file mode
+
+    sepchan --channel channel [optional args] --seek dir1 [dirN...]    # seek mode
+
+Required arguments:
+
+  --channel
+    Index of channel in .wav file where synchronization signal is found.
+    Use 0 for the first channel and 1 for the second.
+
+Optional arguments:
+
+  --force
+    Overwrite existing .sync.txt files in seek mode.
+
+  --verbose
+    Display verbose messages.
+"""
+
+ver_usage_str = 'sepchan --version|-v'
+help_usage_str = 'sepchan --help|-h'
+
+def usage():
+    print ('\n' + standard_usage_str)
+    print ('\n' + ver_usage_str)
+    print ('\n' + help_usage_str)
+
+def version():
+    print """
+sepchan Version %s
+""" % (VERSION)
+
+def help():
+    print """
+psync - Read synchronization signal from a .wav file and output a .sync.txt file.
+
+psync reads audio data from a .wav file, finds synchronization pulses, and
+outputs a text file of zero-based index numbers and corresponding times.
+
+Usage:
+
+    %s
+
+    %s
+
+    %s
+
+In file mode the program operates on one or more .wav file command line
+arguments. Output files are created in the same directory as the .wav
+files and have the same basename as the input file with a .sync.txt suffix.
+If any .sync.txt files already exist with the same names they will be
+overwritten.
+
+In seek mode the program scans one or more directories for *.ch2.wav files and
+operates on each one it finds. If it does not find a '.sync.txt' file that
+corresponds to the .wav then it performs a synchroniation. If it does
+find a corresponding '.sync.txt' file then it skips processing that .wav. Use
+--force to prevent skipping and to overwrite existing .sync.txt files in seek
+mode.
+
+Use --verbose to turn on status messages as .wav files are processed.
+""" % (standard_usage_str, ver_usage_str, help_usage_str)
+
+if __name__ == '__main__':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "c:h:v", ["channel=", "help", "version", "seek", "verbose", "force"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    channel = None
+    seekmode = False
+    verbose = False
+    force = False
+    for o, a in opts:
+        if o in ('-c', '--channel'):
+            channel = a
+        elif o in ('-h', '--help'):
+            help()
+            sys.exit(0)
+        elif o in ('-v', '--version'):
+            version()
+            sys.exit(0)
+        elif o == '--seek':
+            seekmode = True
+        elif o == '--verbose':
+            verbose = True
+        elif o == '--force':
+            force = True
+    if len(args) == 0 or channel is None:
+        print channel
+        usage()
+        sys.exit(2)
+
+    if verbose:
+        print "Starting at: ", datetime.now().time()
+    for fname in args:
+        if seekmode:
+            wavlist = []
+            for root, dirnames, filenames in os.walk(fname):
+                for filename in fnmatch.filter(filenames, '*.ch2.wav'):
+                    basename = os.path.join(root, filename.replace('.ch2.wav',''))
+                    wav = os.path.join(root, filename)
+                    if (os.path.isfile(basename + '.sync.txt') and not force):
+                        if verbose:
+                            sys.stderr.write("Skipping {:s}.\n".format(wav))
+                        continue
+                    if verbose:
+                        sys.stderr.write("Creating sync file for {:s}.\n".format(wav))
+                    try:
+                        ultratils.psync.sync2text(wav, chan=channel)
+                    except Exception as e:
+                        print e
+                        sys.stderr.write("Error creating sync file for {:s}. Skipping.\n".format(wav))
+        else:
+            if verbose:
+                sys.stderr.write("Creating sync file for {:s}.\n".format(fname))
+
+            ultratils.psync.sync2text(fname, chan=channel)
+
+    if verbose:
+        print "Ending at: ", datetime.now().time()
+
