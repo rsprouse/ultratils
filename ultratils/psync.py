@@ -58,7 +58,8 @@ chan = channel number where sync signal is found (0 == first channel)
     print "Found {0:d} synchronization pulses.".format(len(syncsamp))
     dtimes = np.diff(synctimes)
     print "Frame durations range [{0:1.4f} {1:1.4f}].".format(dtimes.min(), dtimes.max())
-    txtname = wavname.replace('.wav', '.sync.txt')
+    outname = wavname.replace('.ch1.wav', '').replace('.ch2.wav','').replace('.wav','')
+    txtname = outname + '.sync.txt'
     with open(txtname, 'w') as fout:
         for idx,t in enumerate(synctimes):
             fout.write("{0:0.4f}\t{1:d}\n".format(t,idx))
