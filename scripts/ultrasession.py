@@ -16,15 +16,6 @@ import random
 import time
 import win32file
 
-# TEMP
-#newcmd = 'C:\\build\\ultracomm.6.1.0\\bin\\Debug\\ultracomm.exe'
-#oldcmd = 'C:\\bin\\ultracomm.exe'
-#if os.path.isfile(newcmd):
-#    if os.path.isfile(oldcmd):
-#        print "Removing {}.".format(oldcmd)
-#        os.remove(oldcmd)
-#    print "Renaming {} to {}.".format(newcmd, oldcmd)
-#    os.rename(newcmd, oldcmd)
 PROJECT_DIR = "C:\\Users\\lingguest\\acq"
 RAWEXT = ".bpr"
 
@@ -257,15 +248,6 @@ if __name__ == '__main__':
         except Exception as e:
             print "Error in acquiring! ", e
             raise
-    #    try:
-    #        print "Converting files"
-    #        raw2bmp(acqdir)
-    #        print "Done converting"
-    #    except KeyboardInterrupt:
-    #        pass    # don't stop on Ctrl-C in acquire(). This is a hack.
-    #    except Exception as e:
-    #        print "Error in converting raw image files to .bmp!", e
-    #        raise
     
         try:
             print "Separating audio channels"
