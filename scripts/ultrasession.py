@@ -4,17 +4,15 @@
 
 import os, os.path, sys, signal, subprocess, shutil
 import numpy as np
-import win32api, win32con
+import win32api, win32con, win32file
 from datetime import datetime
 from dateutil.tz import tzlocal
-import Image
 import wave
 from contextlib import closing
 import getopt
 import random
 #import ultratils.disk_streamer
 import time
-import win32file
 
 PROJECT_DIR = "C:\\Users\\lingguest\\acq"
 RAWEXT = ".bpr"
