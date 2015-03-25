@@ -4,7 +4,7 @@
 
 import os, os.path, sys, signal, subprocess, shutil
 import numpy as np
-#import win32api, win32con
+import win32api, win32con
 from datetime import datetime
 from dateutil.tz import tzlocal
 import Image
@@ -12,7 +12,7 @@ import wave
 from contextlib import closing
 import getopt
 import random
-import ultratils.disk_streamer
+#import ultratils.disk_streamer
 import time
 import win32file
 
@@ -142,10 +142,10 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.wait()
 
-    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname, '--named-pipe']
+    rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
+    rec_proc = subprocess.Popen(rec_args, shell=True)
 
-    streamer = ultratils.disk_streamer.DiskStreamer("{}.wav".format(acqname))
-    streamer.start_stream()
+    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname, '--named-pipe']
     ult_proc = subprocess.Popen(ult_args)
     pipename = r'\\.\pipe\ultracomm'
     start = time.time()
@@ -158,23 +158,19 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
             fhandle = None
             if time.time() - start > 10:
                 raise IOError("Could not connect to named pipe")
+
+    # Wait for user interaction, then terminate ultracomm.
     raw_input("Press Enter to end ultrasession.")
     win32file.WriteFile(fhandle, 'END')
     while ult_proc.poll() is None:
         time.sleep(0.01)
-    streamer.stop_stream()
-    streamer.close()
-    #rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
-    #rec_proc = subprocess.Popen(rec_args, shell=True)
-    #ult_proc = subprocess.Popen(ult_args)
-    #ult_proc.wait()
-    #subprocess.check_call(ult_args)
-    # Stop sox by sending Ctrl-C to the console
-    #print "***********************************"
-    #print "Press Ctrl-C to stop sox recording."
-    #print "***********************************"
-    #rec_proc.wait()
-    #win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
+
+    # Send Ctrl-C to sox and ignore it in this script.
+    try:
+        win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
+    except KeyboardInterrupt:
+        pass
+    rec_proc.wait()
 
 def separate_channels(acqname):
     '''Separate the left and right channels from the acquisition .wav.'''
@@ -246,13 +242,15 @@ if __name__ == '__main__':
                 print("\n\n******************************\n\n")
 
             acqbase = os.path.join(acqdir, tstamp + RAWEXT)
-            acquire(acqbase, params, ultracomm)
             try:
                 copyparams = os.path.join(acqdir, 'params.cfg')
                 print "Copying ", params, " to ", copyparams
                 shutil.copyfile(params, copyparams)
                 with open(os.path.join(acqdir, 'stim.txt'), 'w+') as stimout:
                     stimout.write(stim)
+                acquire(acqbase, params, ultracomm)
+            except KeyboardInterrupt:
+                pass   # Ignore Ctrl-C sent during acquire().
             except IOError:
                 print "Could not copy parameter file or create stim.txt! ", e
                 raise
