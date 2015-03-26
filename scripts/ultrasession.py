@@ -93,8 +93,7 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
     # Wait for user interaction, then terminate ultracomm.
     raw_input("Press Enter to end ultrasession.")
     win32file.WriteFile(fhandle, 'END')
-    while ult_proc.poll() is None:
-        time.sleep(0.01)
+    ult_proc.wait()
 
     # Send Ctrl-C to sox and ignore it in this script.
     try:
