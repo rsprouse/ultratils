@@ -1,6 +1,7 @@
 import numpy as np
 import wave
 from contextlib import closing
+import audiolabel
 
 NORM_SYNC_THRESH = 0.2  # normalized threshold for detecting synchronizaton signal.
 MIN_SYNC_TIME = 0.0005   # minimum time threshold must be exceeded to detect synchronization signal
@@ -60,9 +61,22 @@ chan = channel number where sync signal is found (0 == first channel)
     print "Frame durations range [{0:1.4f} {1:1.4f}].".format(dtimes.min(), dtimes.max())
     outname = wavname.replace('.ch1.wav', '').replace('.ch2.wav','').replace('.wav','')
     txtname = outname + '.sync.txt'
+    tgname = outname + '.sync.TextGrid'
+    lm = audiolabel.LabelManager()
+    intvl_tier = audiolabel.IntervalTier(name="frameidx")
+    lm.add(intvl_tier)
+    t1 = synctimes[0]
     with open(txtname, 'w') as fout:
         for idx,t in enumerate(synctimes):
             fout.write("{0:0.4f}\t{1:d}\n".format(t,idx))
+            try:
+                t2 = synctimes[idx+1]
+            except IndexError:
+                t2 = t + dtimes.min()
+            intvl_tier.add(audiolabel.Label(t1=t1, t2=t2, text=str(idx)))
+            t1 = t2
+    with open(tgname, 'w') as tgout:
+        tgout.write(lm._as_string(fmt="praat_long"))
  
 
 
