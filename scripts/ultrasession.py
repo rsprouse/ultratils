@@ -14,7 +14,7 @@ import time
 PROJECT_DIR = r"C:\Users\lingguest\acq"
 RAWEXT = ".bpr"
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--ultracomm ultracomm_cmd] [--random] [--no-prompt]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--random] [--no-prompt]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -47,6 +47,20 @@ Optional arguments:
     copied to the file stim.txt in the acquisition subdirectory. If no
     stimulus file is provided then ultrasession will perform a single
     acquisition and stop.
+
+    --stimulus stimulus
+    A string containing a stimulus token. This string will be copied to
+    the stim.txt file in the acquisition subdirectory. When --stimulus is
+    provided ultrasession will perform a single acquisition and stop.
+
+    The --stims and --stimulus parameters are alternate ways of running
+    ultrasession. The --stims parameter is intended for running a series of
+    acquisitions in batch mode from the command line, and the --stimulus
+    parameter is more suitable for creating individual acquisitions under
+    the control of another application, such as from within a loop in
+    an opensesame experiment. If both the --stims and --stimulus parameters
+    are provided, the option appearing last in the argument list will
+    control the behavior of ultrasession.
 
     --ultracomm ultracomm_cmd
     The name of the ultracomm command to use to connect the Ultrasonix,
@@ -104,7 +118,7 @@ def acquire(acqname, paramsfile, ultracomm_cmd):
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "random", "help", "no-prompt"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "random", "help", "stimulus=", "no-prompt"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -115,6 +129,7 @@ if __name__ == '__main__':
     ultracomm = 'ultracomm'
     randomize = False
     no_prompt = False
+    stimulus = ''
     for o, a in opts:
         if o in ("-p", "--params"):
             params = a
@@ -122,8 +137,12 @@ if __name__ == '__main__':
             datadir = a
         elif o in ("-s", "--stims"):
             stimfile = a
+            stimulus = ''
         elif o in ("-u", "--ultracomm"):
             ultracomm = a
+        elif o == '--stimulus':
+            stimulus = a
+            stimfile = None
         elif o in ("-r", "--random"):
             randomize = True
         elif o in ("-h", "--help"):
@@ -131,12 +150,12 @@ if __name__ == '__main__':
             sys.exit(0)
         elif o == "--no-prompt":
             no_prompt = True
-    if params == None:
+    if params is None:
         usage()
         sys.exit(2)
     stims = []
-    if stimfile == None:
-        stims = ['']
+    if stimfile is None:
+        stims = [stimulus]
     else:
         with open(stimfile, 'rb') as file:
             for line in file.readlines():
@@ -144,6 +163,8 @@ if __name__ == '__main__':
     if randomize:
         random.shuffle(stims)
     for stim in stims:
+        if stimulus is not None:
+            stim = stimulus
         if no_prompt is False:
             raw_input("Press <Enter> for acquisition.")
         tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
