@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''Separate channels of a stereo .wav file into new files.'''
+
+import os, sys, os.path, fnmatch
+import sys
+import subprocess
+import getopt
+from datetime import datetime
+
+VERSION = '0.2.0'
+SOX_CMD = r'C:\bin\sox.exe'
+
+standard_usage_str = """sepchan [optional args] file1.wav [fileN.wav...]           # file mode
+
+    sepchan [optional args] --seek dir1 [dirN...]    # seek mode
+
+Optional arguments:
+
+  --force
+    Overwrite existing .wav files in seek mode.
+
+  --verbose
+    Display verbose messages.
+"""
+
+ver_usage_str = 'sepchan --version|-v'
+help_usage_str = 'sepchan --help|-h'
+
+def usage():
+    print ('\n' + standard_usage_str)
+    print ('\n' + ver_usage_str)
+    print ('\n' + help_usage_str)
+
+def version():
+    print """
+sepchan Version %s
+""" % (VERSION)
+
+def help():
+    print """
+sepchan - Separate channels of a stereo file into new files.
+
+sepchan reads from stereo .wav files and saves the channels to separate
+output files. These files are named *.ch1.wav and *.ch2.wav.
+
+Usage:
+
+    %s
+
+    %s
+
+    %s
+
+In file mode the program operates on one or more .wav file command line
+arguments. Output files are created in the same directory as the .wav
+files and have the same basename as the input file with .ch1.wav and
+.ch2.wav suffixes. If any .wav files already exist with the same names
+they will be overwritten.
+
+In seek mode the program scans one or more directories for .wav files and
+operates on each one it finds. If it does not find a '.ch1.wav' file that
+corresponds to the .wav then it extracts the channels from the .wav. If it does
+find a corresponding '.ch1.wav' file then it skips processing that .wav. Use
+--force to prevent skipping and to overwrite existing .wav files in seek
+mode.
+
+Use --verbose to turn on status messages as .wav files are processed.
+""" % (standard_usage_str, ver_usage_str, help_usage_str)
+
+def separate_channels(wavname):
+    '''Separate the left and right channels from a .wav.'''
+    basename = os.path.splitext(wavname)[0]
+    for num in ['1', '2']:
+        ch = basename + '.ch' + num + '.wav'
+        sox_args = [SOX_CMD, wavname, ch, 'remix', num]
+        sox_proc = subprocess.Popen(sox_args, shell=True)
+        sox_proc.wait()
+        if sox_proc.returncode != 0:
+            #for line in sox_proc.stderr:
+            #    sys.stderr.write(line + '\n')
+            print sox_args
+            raise Exception("sox exited with status: {0}".format(sox_proc.returncode))
+
+
+if __name__ == '__main__':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "force"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    seekmode = False
+    verbose = False
+    force = False
+    for o, a in opts:
+        if o in ('-h', '--help'):
+            help()
+            sys.exit(0)
+        elif o in ('-v', '--version'):
+            version()
+            sys.exit(0)
+        elif o == '--seek':
+            seekmode = True
+        elif o == '--verbose':
+            verbose = True
+        elif o == '--force':
+            force = True
+    if len(args) == 0:
+        usage()
+        sys.exit(2)
+
+    if verbose:
+        print "Starting at: ", datetime.now().time()
+    for fname in args:
+        if seekmode:
+            wavlist = []
+            for root, dirnames, filenames in os.walk(fname):
+                for filename in fnmatch.filter(filenames, '*.wav'):
+                    basename = os.path.join(root, os.path.splitext(filename)[0])
+                    wav = os.path.join(root, filename)
+                    if wav.endswith('.ch1.wav') or \
+                       wav.endswith('.ch2.wav') or \
+                       (os.path.isfile(basename + '.ch1.wav') and not force):
+                        if verbose:
+                            sys.stderr.write("Skipping {:s}.\n".format(wav))
+                        continue
+                    if verbose:
+                        sys.stderr.write("Separating channels for {:s}.\n".format(wav))
+                    try:
+                        separate_channels(wav)
+                    except Exception as e:
+                        sys.stderr.write("Error in separating {:s}. Skipping.\n".format(wav))
+        else:
+            if verbose:
+                sys.stderr.write("Separating channels for {:s}.\n".format(fname))
+
+            separate_channels(fname)
+
+    if verbose:
+        print "Ending at: ", datetime.now().time()
+

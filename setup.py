@@ -24,6 +24,9 @@ setup(
   package_data = {'ultratils.pysonix': ['data/probes.xml']},
   scripts = [
     'scripts/bpr2bmp',
+    'scripts/psync',
+    'scripts/sepchan',
+    'scripts/ultraproc',
     'scripts/ultrasession.py',
     'scripts/wait_for_input'
   ],
