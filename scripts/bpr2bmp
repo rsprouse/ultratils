@@ -12,9 +12,12 @@ import ultratils.pysonix.scanconvert
 import Image
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import datetime
 import time
+import hashlib
 
-VERSION = '0.2.0'
+VERSION = '0.2.1'
+Verbose = False
 
 standard_usage_str = """bpr2bmp --probe|-p id [optional args] file1.bpr [fileN.bpr...]           # file mode
 
@@ -30,6 +33,9 @@ Optional arguments:
 
   --no-index-file
     Do not look for a '.idx.txt' index file for numbering bmp.
+
+  --no-deduplicate
+    Do not look for and remove duplicate frames.
 """
 
 ver_usage_str = 'bpr2bmp --version|-v'
@@ -78,6 +84,10 @@ frames are created for frames that failed to be captured. If the
 --no-index-file option is used, then frame indexes for .bmp files are
 created sequentially, and no detection of skipped frames will occur.
 
+Duplicate frames in the .bpr are ignored and no .bmp file corresponds to
+these frames. If you want to produce duplicate .bmp files, use the
+--no-deduplicate parameter.
+
 Use --verbose to turn on status messages as .bpr files are processed.
 """ % (standard_usage_str, ver_usage_str, help_usage_str)
 
@@ -85,7 +95,7 @@ def bitmap_for_bpr_exists(bpr):
     """Return true if one or more bitmap files exist for a .bpr file."""
     return os.path.isfile(os.path.splitext(bpr)[0] + '.0.bmp')
 
-def convert_to_bmp(bpr, probe, auto_index=False):
+def convert_to_bmp(bpr, probe, auto_index=False, deduplicate=True):
     """Convert the frames in a bpr file to bitmaps."""
     barename = os.path.splitext(bpr)[0]   # get filename without extension
     bprreader = ultratils.pysonix.bprreader.BprReader(bpr)
@@ -104,8 +114,18 @@ def convert_to_bmp(bpr, probe, auto_index=False):
     start = time.time()
     lasttime = start
     lastcnt = -1
+    if deduplicate:
+        fhashes = {}
     for idx in range(header.nframes):
         data = np.flipud(converter.as_bmp(bprreader.get_frame()))
+        if deduplicate:
+            h = hashlib.sha1(data.copy(order="c")).hexdigest()
+            if h in fhashes.keys():
+                if Verbose:
+                    msg = "Frame {:d} is a duplicate of {:d}. Skipping.\n".format(idx, fhashes[h])
+                    sys.stderr.write(msg)
+                continue
+            fhashes[h] = idx
         frame = Image.fromarray(data.astype(np.uint8))
         if auto_index:
             frame.save("{:s}.{:d}.bmp".format(barename, idx))
@@ -126,16 +146,16 @@ def convert_to_bmp(bpr, probe, auto_index=False):
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:h:v", ["probe=", "help", "version", "seek", "verbose", "force", "no-index-file"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:h:v", ["probe=", "help", "version", "seek", "verbose", "force", "no-index-file", "no-deduplicate"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
     seekmode = False
-    verbose = False
     force = False
     probe = None
     auto_index = False
+    deduplicate = True
     for o, a in opts:
         if o in ("-p", "--probe"):
             probe = ultratils.pysonix.probe.Probe(a)
@@ -148,16 +168,18 @@ if __name__ == '__main__':
         elif o == '--seek':
             seekmode = True
         elif o == '--verbose':
-            verbose = True
+            Verbose = True
         elif o == '--force':
             force = True
         elif o == '--no-index-file':
             auto_index = True
+        elif o == '--no-deduplicate':
+            deduplicate = False
     if len(args) == 0 or (probe == None):
         usage()
         sys.exit(2)
 
-    if verbose:
+    if Verbose:
         print "Starting at: ", datetime.datetime.now().time()
     for fname in args:
         if seekmode:
@@ -167,24 +189,24 @@ if __name__ == '__main__':
                     bprlist.append(os.path.join(root, filename))
             for bpr in bprlist:
                 if force or not bitmap_for_bpr_exists(bpr):
-                    if verbose:
+                    if Verbose:
                         sys.stderr.write("Creating bitmaps for {:s}.\n".format(bpr))
                     try:
-                        convert_to_bmp(bpr, probe, auto_index)
+                        convert_to_bmp(bpr, probe, auto_index, deduplicate)
                     except Exception as e:
                         sys.stderr.write("Error in converting {:s}. Skipping.\n".format(bpr))
                 else:
-                    if verbose:
+                    if Verbose:
                         sys.stderr.write("Skipping {:s}. Bitmap already exists.\n".format(bpr))
         else:
-            if verbose:
+            if Verbose:
                 sys.stderr.write("Creating bitmaps for {:s}.\n".format(fname))
 
 #            try:
-            convert_to_bmp(fname, probe, auto_index)
+            convert_to_bmp(fname, probe, auto_index, deduplicate)
 #            except Exception as e:
 #                sys.stderr.write("Error in converting {:s}: {:s}.\n".format(fname, e))
 
-    if verbose:
+    if Verbose:
         print "Ending at: ", datetime.datetime.now().time()
 
