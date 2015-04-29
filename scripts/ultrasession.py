@@ -163,7 +163,7 @@ if __name__ == '__main__':
     if randomize:
         random.shuffle(stims)
     for stim in stims:
-        if stimulus is not None:
+        if stimulus != '':
             stim = stimulus
         if no_prompt is False:
             raw_input("Press <Enter> for acquisition.")
