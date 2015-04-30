@@ -14,7 +14,7 @@ import time
 PROJECT_DIR = r"C:\Users\lingguest\acq"
 RAWEXT = ".bpr"
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--random] [--no-prompt]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--random] [--no-prompt] [--no-ultracomm] [--no-audio]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -77,48 +77,67 @@ Optional arguments:
     press the Enter key to start an acquisition. Acquisition will begin
     immediately.
     
+    --no-ultracomm
+    When this option is provided then the ultracomm utility will not
+    run during the acquisition. Thus no .bpr or .idx.txt files will be
+    created. The timestamped acquisition directory will be created, and
+    the ultracomm parameter file and stim.txt will be created in the
+    acquisition directory. Audio will be captured and a .wav file
+    created unless the --no-audio paramter is specified.
+
+    --no-audio
+    When this option is provided then audio will not be captured during
+    the acquisition and no output .wav file will be created.
+
 '''.format(PROJECT_DIR))
     
 
-def acquire(acqname, paramsfile, ultracomm_cmd):
+def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio):
     '''Perform a single acquisition, creating output files based on acqname.'''
-    # Make sure Ultrasonix is frozen before we start recording.
-    frz_args = [ultracomm_cmd, '--params', paramsfile, '--freeze-only']
-    frz_proc = subprocess.Popen(frz_args)
-    frz_proc.wait()
 
-    rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
-    rec_proc = subprocess.Popen(rec_args, shell=True)
+    if skip_ultracomm is False:
+        # Make sure Ultrasonix is frozen before we start recording.
+        frz_args = [ultracomm_cmd, '--params', paramsfile, '--freeze-only']
+        frz_proc = subprocess.Popen(frz_args)
+        frz_proc.wait()
+
+    if skip_audio is False:
+        rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
+        rec_proc = subprocess.Popen(rec_args, shell=True)
 
     ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname, '--named-pipe']
-    ult_proc = subprocess.Popen(ult_args)
-    pipename = r'\\.\pipe\ultracomm'
-    start = time.time()
-    fhandle = None
-    while not fhandle:
-        try:
-            fhandle = win32file.CreateFile(pipename, win32file.GENERIC_WRITE, 0, None, win32file.OPEN_EXISTING, 0, None)
-        except:
-            time.sleep(0.1)
-            fhandle = None
-            if time.time() - start > 10:
-                raise IOError("Could not connect to named pipe")
+    if skip_ultracomm is False:
+        ult_proc = subprocess.Popen(ult_args)
+        pipename = r'\\.\pipe\ultracomm'
+        start = time.time()
+        fhandle = None
+        while not fhandle:
+            try:
+                fhandle = win32file.CreateFile(pipename, win32file.GENERIC_WRITE, 0, None, win32file.OPEN_EXISTING, 0, None)
+            except:
+                time.sleep(0.1)
+                fhandle = None
+                if time.time() - start > 10:
+                    raise IOError("Could not connect to named pipe")
 
     # Wait for user interaction, then terminate ultracomm.
     raw_input("Press Enter to end ultrasession.")
-    win32file.WriteFile(fhandle, 'END')
-    ult_proc.wait()
 
-    # Send Ctrl-C to sox and ignore it in this script.
-    try:
-        win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
-    except KeyboardInterrupt:
-        pass
-    rec_proc.wait()
+    if skip_ultracomm is False:
+        win32file.WriteFile(fhandle, 'END')
+        ult_proc.wait()
+
+    if skip_audio is False:
+        # Send Ctrl-C to sox and ignore it in this script.
+        try:
+            win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
+        except KeyboardInterrupt:
+            pass
+        rec_proc.wait()
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "random", "help", "stimulus=", "no-prompt"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "random", "help", "stimulus=", "no-prompt", "no-ultracomm", "no-audio"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -129,6 +148,8 @@ if __name__ == '__main__':
     ultracomm = 'ultracomm'
     randomize = False
     no_prompt = False
+    skip_ultracomm = False
+    skip_audio = False
     stimulus = ''
     for o, a in opts:
         if o in ("-p", "--params"):
@@ -150,6 +171,10 @@ if __name__ == '__main__':
             sys.exit(0)
         elif o == "--no-prompt":
             no_prompt = True
+        elif o == "--no-ultracomm":
+            skip_ultracomm = True
+        elif o == "--no-audio":
+            skip_audio = True
     if params is None:
         usage()
         sys.exit(2)
@@ -188,7 +213,11 @@ if __name__ == '__main__':
                 shutil.copyfile(params, copyparams)
                 with open(os.path.join(acqdir, 'stim.txt'), 'w+') as stimout:
                     stimout.write(stim)
-                acquire(acqbase, params, ultracomm)
+                acquire(acqbase,
+                        params,
+                        ultracomm,
+                        skip_ultracomm=skip_ultracomm,
+                        skip_audio=skip_audio)
             except KeyboardInterrupt:
                 pass   # Ignore Ctrl-C sent during acquire().
             except IOError:
