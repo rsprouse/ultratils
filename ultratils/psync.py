@@ -75,7 +75,7 @@ pstretch = flag to choose sync algorithm, depending on whether pstretch unit was
     if pstretch:
         syncsamp = sync_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
     else:
-        syncsamp = sync_no_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
+        syncsamp = sync_no_pstretch(syncsig)
     synctimes = np.round(syncsamp * 1.0 / rate, decimals=4)
     print "Found {0:d} synchronization pulses.".format(len(syncsamp))
     dtimes = np.diff(synctimes)
