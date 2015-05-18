@@ -47,14 +47,35 @@ all of which are above threshold.'''
     run_ends = np.where(difs == -1)[0]
     return run_starts[np.where((run_ends - run_starts) > min_run)[0]]
 
-def sync2text(wavname, chan):
+def sync_no_pstretch(sig):
+    '''Find and return indexes of synchronization points from ultrasound unit,
+*without* the pstretch unit. Sync points are defined as the signal peaks that
+are the higher than all their neighbors that exceed a threshold, which is a
+percentage of the signal maximum.'''
+    sig = abs(sig)
+    bounded = np.hstack(([0], sig, [0]))
+    threshold = 0.5 * np.max(sig)
+    thresh_sig = (bounded > threshold).astype(int)
+    difs = np.diff(thresh_sig)
+    run_starts = np.where(difs == 1)[0]
+    run_ends = np.where(difs == -1)[0]
+    peaks = np.zeros([len(run_starts])
+    for idx,(s,e) in enumerate(zip(run_starts, run_ends)):
+        peaks[idx] = s + np.argmax(bounded[s:e])
+    return peaks
+    
+def sync2text(wavname, chan, pstretch=True):
     '''Find the synchronization signals in an acquisition's .wav file and
 create a text file that contains frame numbers and time stamps for each pulse.
 
 chan = channel number where sync signal is found (0 == first channel)
+pstretch = flag to choose sync algorithm, depending on whether pstretch unit was used
 '''
     (syncsig, rate) = loadsync(wavname, chan)
-    syncsamp = sync_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
+    if pstretch:
+        syncsamp = sync_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
+    else:
+        syncsamp = sync_no_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
     synctimes = np.round(syncsamp * 1.0 / rate, decimals=4)
     print "Found {0:d} synchronization pulses.".format(len(syncsamp))
     dtimes = np.diff(synctimes)
