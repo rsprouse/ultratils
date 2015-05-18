@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 import wave
 from contextlib import closing
@@ -76,7 +77,7 @@ pstretch = flag to choose sync algorithm, depending on whether pstretch unit was
         syncsamp = sync_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
     else:
         syncsamp = sync_no_pstretch(syncsig)
-    synctimes = np.round(syncsamp * 1.0 / rate, decimals=4)
+    synctimes = np.round(syncsamp / rate, decimals=4)
     print "Found {0:d} synchronization pulses.".format(len(syncsamp))
     dtimes = np.diff(synctimes)
     print "Frame durations range [{0:1.4f} {1:1.4f}].".format(dtimes.min(), dtimes.max())
@@ -84,8 +85,10 @@ pstretch = flag to choose sync algorithm, depending on whether pstretch unit was
     txtname = outname + '.sync.txt'
     tgname = outname + '.sync.TextGrid'
     lm = audiolabel.LabelManager()
-    intvl_tier = audiolabel.IntervalTier(name="frameidx")
+    intvl_tier = audiolabel.IntervalTier(name="frameidx", start=0.0,
+                                         end=np.round(len(syncsig) / rate, decimals=4))
     lm.add(intvl_tier)
+    intvl_tier.add(audiolabel.Label(t1=0.0, t2=synctimes[0], text=''))
     t1 = synctimes[0]
     with open(txtname, 'w') as fout:
         for idx,t in enumerate(synctimes):
@@ -96,6 +99,7 @@ pstretch = flag to choose sync algorithm, depending on whether pstretch unit was
                 t2 = t + dtimes.min()
             intvl_tier.add(audiolabel.Label(t1=t1, t2=t2, text=str(idx)))
             t1 = t2
+    intvl_tier.add(audiolabel.Label(t1=t1, t2=intvl_tier.end, text=''))
     with open(tgname, 'w') as tgout:
         tgout.write(lm._as_string(fmt="praat_long"))
  
