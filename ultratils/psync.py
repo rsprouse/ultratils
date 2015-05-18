@@ -59,7 +59,7 @@ percentage of the signal maximum.'''
     difs = np.diff(thresh_sig)
     run_starts = np.where(difs == 1)[0]
     run_ends = np.where(difs == -1)[0]
-    peaks = np.zeros([len(run_starts])
+    peaks = np.zeros([len(run_starts)])
     for idx,(s,e) in enumerate(zip(run_starts, run_ends)):
         peaks[idx] = s + np.argmax(bounded[s:e])
     return peaks
