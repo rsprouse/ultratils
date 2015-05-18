@@ -15,7 +15,7 @@ SOX_CMD = r'C:\bin\sox.exe'
 
 standard_usage_str = """psync --channel channel [optional args] file1.wav [fileN.wav...]           # file mode
 
-    sepchan --channel channel [optional args] --seek dir1 [dirN...]    # seek mode
+    psync --channel channel [optional args] --seek dir1 [dirN...]    # seek mode
 
 Required arguments:
 
@@ -30,6 +30,10 @@ Optional arguments:
 
   --verbose
     Display verbose messages.
+
+  --no-pstretch
+    Use when pstretch unit was not used to length the synchronization signal.
+    An alternate sync pulse algorithm will be used.
 """
 
 ver_usage_str = 'sepchan --version|-v'
@@ -78,7 +82,7 @@ Use --verbose to turn on status messages as .wav files are processed.
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "c:h:v", ["channel=", "help", "version", "seek", "verbose", "force"])
+        opts, args = getopt.getopt(sys.argv[1:], "c:h:v", ["channel=", "help", "version", "seek", "verbose", "force", "no-pstretch"])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -87,6 +91,7 @@ if __name__ == '__main__':
     seekmode = False
     verbose = False
     force = False
+    pstretch = True
     for o, a in opts:
         if o in ('-c', '--channel'):
             channel = a
@@ -102,6 +107,8 @@ if __name__ == '__main__':
             verbose = True
         elif o == '--force':
             force = True
+        elif o == '--no-pstretch':
+            pstretch = False
     if len(args) == 0 or channel is None:
         print channel
         usage()
@@ -123,7 +130,7 @@ if __name__ == '__main__':
                     if verbose:
                         sys.stderr.write("Creating sync file for {:s}.\n".format(wav))
                     try:
-                        ultratils.psync.sync2text(wav, chan=channel)
+                        ultratils.psync.sync2text(wav, chan=channel, pstretch=pstretch)
                     except Exception as e:
                         print e
                         sys.stderr.write("Error creating sync file for {:s}. Skipping.\n".format(wav))
@@ -131,7 +138,7 @@ if __name__ == '__main__':
             if verbose:
                 sys.stderr.write("Creating sync file for {:s}.\n".format(fname))
 
-            ultratils.psync.sync2text(fname, chan=channel)
+            ultratils.psync.sync2text(fname, chan=channel, pstretch=pstretch)
 
     if verbose:
         print "Ending at: ", datetime.now().time()
