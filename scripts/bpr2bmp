@@ -106,7 +106,7 @@ def convert_to_bmp(bpr, probe, auto_index=False, deduplicate=True):
         idxfile = "{}.idx.txt".format(bpr)
         indexes = np.loadtxt(idxfile, dtype=int)
         # Create a gray image as a skipped frame filler.
-        blankbpr = converter.default_bpr_frame(128)
+        blankbpr = converter.default_bpr_frame(0)
         blank = converter.as_bmp(blankbpr).astype(np.uint8)
         blank = Image.fromarray(np.flipud(blank))
         last_frame = -1
