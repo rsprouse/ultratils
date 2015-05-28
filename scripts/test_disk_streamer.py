@@ -6,7 +6,7 @@ import ultratils.disk_streamer
 import subprocess
 import time
 
-streamer = ultratils.disk_streamer.DiskStreamer('test.wav')
+streamer = ultratils.disk_streamer.DiskStreamer('test.wav', channels=1, separate=False)
 
 start = time.time()
 
