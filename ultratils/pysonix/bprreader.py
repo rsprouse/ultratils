@@ -37,9 +37,12 @@ class BprReader:
         self.csums = [None] * self.header.nframes
         if checksum:
             for idx in range(self.header.nframes):
+                print "working on {:d}".format(idx)
                 data = self.get_frame()
-                #self.csums[idx] = hashlib.sha1(data.copy(order="c")).hexdigest()
-                self.csums[idx] = hashlib.sha1(data).hexdigest()
+                csum = hashlib.sha1(data.copy(order="c")).hexdigest()
+                if csum in self.csums:
+                    "Frame {:d} is a duplicate!".format(idx)
+                self.csums[idx] = csum
         self._fhandle.seek(self.header.packed_size)
 
  

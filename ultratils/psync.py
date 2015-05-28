@@ -99,7 +99,10 @@ pstretch = flag to choose sync algorithm, depending on whether pstretch unit was
                 t2 = t + dtimes.min()
             intvl_tier.add(audiolabel.Label(t1=t1, t2=t2, text=str(idx)))
             t1 = t2
-    intvl_tier.add(audiolabel.Label(t1=t1, t2=intvl_tier.end, text=''))
+    t2 = t1 + dtimes.min()
+    intvl_tier.add(audiolabel.Label(t1=t1, t2=t2, text=''))
+    if t2 > intvl_tier.end:
+        intvl_tier.end = t2
     with open(tgname, 'w') as tgout:
         tgout.write(lm._as_string(fmt="praat_long"))
  
