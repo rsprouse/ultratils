@@ -116,8 +116,8 @@ def convert_to_bmp(bpr, probe, auto_index=False, deduplicate=True):
     lastcnt = -1
     if deduplicate:
         fhashes = {}
-    for idx in range(header.nframes):
-        data = np.flipud(converter.as_bmp(bprreader.get_frame()))
+    for idx,bprdata in enumerate(bprreader):
+        data = np.flipud(converter.as_bmp(bprdata))
         if deduplicate:
             h = hashlib.sha1(data.copy(order="c")).hexdigest()
             if h in fhashes.keys():
