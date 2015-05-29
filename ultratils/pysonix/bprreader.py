@@ -31,7 +31,7 @@ class BprReader:
         if self.header.filetype != 2:
             msg = "Unexpected filetype! Expected 2 and got {filetype:d}"
             raise ValueError, msg.format(filetype=self.header.filetype)
-        # data_fmt and framesize values are specific to .bpr
+        # these data_fmt and framesize values are specific to .bpr
         self.data_fmt = 'B' * (self.header.h * self.header.w)
         self.framesize = 1 * (self.header.h * self.header.w)
         self.csums = [None] * self.header.nframes
@@ -44,18 +44,27 @@ class BprReader:
                     "Frame {:d} is a duplicate!".format(idx)
                 self.csums[idx] = csum
         self._fhandle.seek(self.header.packed_size)
+        self._cursor = self._fhandle.tell()
 
+    def __iter__(self):
+        return self
+
+    def next(self):
+        '''Get the next image frame.'''
+        try:
+            self._fhandle.seek(self._cursor)
+            packed_data = self._fhandle.read(self.framesize)
+            data = np.array(struct.unpack(self.data_fmt, packed_data))
+        except struct.error:   # ran out of data to unpack()
+            raise StopIteration
+        self._cursor = self._fhandle.tell()
+        return data.reshape([self.header.w, self.header.h]).T
  
-    def get_frame(self, idx=None, advance=True):
-        '''Get the next image frame. If idx is provided, read frame of given index. By default the file handle's current position advances to the end of the read frame. If advance is False the file handle's current position remains unchanged by the read().'''
-# TODO: do something appropriate if there is no more data to read
-        if not advance:
-            cur_pos = self._fhandle.tell()
-        if idx is not None:
-            self._fhandle.seek(self.header.packed_size + (idx * self.framesize))
+    def get_frame(self, idx=None):
+        '''Get the image frame specified by idx. Do not advance the read location of _fhandle.'''
+        self._fhandle.seek(self.header.packed_size + (idx * self.framesize))
         packed_data = self._fhandle.read(self.framesize)
-        if not advance:
-            self._fhandle.seek(cur_pos)
+        self._fhandle.seek(self._cursor)
         data = np.array(struct.unpack(self.data_fmt, packed_data))
         return data.reshape([self.header.w, self.header.h]).T
 
