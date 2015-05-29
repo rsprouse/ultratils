@@ -108,6 +108,10 @@ received_indexes = filename of an index file containing the indexes of the
         raw_data_tier.add(audiolabel.Label(t1=0.0, t2=synctimes[0], text=''))
     t1 = synctimes[0]
     with open(txtname, 'w') as fout:
+        if received_indexes is None:
+            fout.write("seconds\tpulse_idx\n")
+        else:
+            fout.write("seconds\tpulse_idx\traw_data_idx\n")
         for idx,t in enumerate(synctimes):
             if received_indexes is not None:
                 try:
