@@ -28,6 +28,7 @@ psync_args = [
     psync_cmd,
     '--channel',
     '0',
+    '--summary',
     '--seek',
     datadir
 ]
