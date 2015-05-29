@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-'''Detect synchronization signal from pstretch unit.'''
+'''Detect ultrasound synchronization signal unit in a .wav file.'''
 
 import os, sys, os.path, fnmatch
 import sys
@@ -31,9 +31,34 @@ Optional arguments:
   --verbose
     Display verbose messages.
 
-  --no-pstretch
-    Use when pstretch unit was not used to length the synchronization signal.
-    An alternate sync pulse algorithm will be used.
+  --algorithm='impulse' (default) | 'pstretch'
+    Name of the algorithm used to detect the sync signal. The 'impulse'
+    algorithm detects the peak of an impulse and is the default if this
+    parameter is not provided. The 'pstretch' algorithm is suitable for
+    impulse signals that have been lengthened by the pstretch hardware unit.
+
+  --received_indexes=index_file
+    An index file containing the data frames actually received for each
+    synchronization pulse. The format of this file is a single column of
+    zero-based index numbers, one index per line and in strictly increasing
+    order. If this file is provided, then the output textgrid will contain
+    a second tier named 'raw_data_index' to indicate the data frame where
+    the raw data corresponding to a sync pulse is expected to be found.
+
+    Use of --received_indexes implies --raw-data-index.
+
+  --raw-data-index (default)
+    Produce the raw_data_index tier/column in the output, which contains the
+    indexes of data frames that were received during acquisition. Use the file
+    named by --received_indexes for the list of acquired frames. If no filename
+    is supplied, attempt to find the indexes in a file with the same basename
+    as the .wav file and with a '.idx.txt' extension.
+
+  --no-raw-data-index
+    Do not produce the raw_data_index tier/column in the output.
+
+  --summary
+    Output a summary of sync pulses found to STDERR.
 """
 
 ver_usage_str = 'sepchan --version|-v'
@@ -82,7 +107,7 @@ Use --verbose to turn on status messages as .wav files are processed.
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "c:h:v", ["channel=", "help", "version", "seek", "verbose", "force", "no-pstretch"])
+        opts, args = getopt.getopt(sys.argv[1:], "c:h:v", ["channel=", "help", "version", "seek", "verbose", "force", "raw-data-index", "no-raw-data-index", "summary", "algorithm=", "received_indexes="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -91,7 +116,10 @@ if __name__ == '__main__':
     seekmode = False
     verbose = False
     force = False
-    pstretch = True
+    algorithm = 'impulse'
+    received_indexes = None
+    raw_data_index = True
+    summary = False
     for o, a in opts:
         if o in ('-c', '--channel'):
             channel = a
@@ -107,8 +135,17 @@ if __name__ == '__main__':
             verbose = True
         elif o == '--force':
             force = True
-        elif o == '--no-pstretch':
-            pstretch = False
+        elif o == '--raw-data-index':
+            raw_data_index = True
+        elif o == '--no-raw-data-index':
+            raw_data_index = False
+        elif o == '--summary':
+            summary = True
+        elif o == '--algorithm':
+            algorithm = a
+        elif o == '--received_indexes':
+            received_indexes = a
+            raw_data_index = True
     if len(args) == 0 or channel is None:
         print channel
         usage()
@@ -130,15 +167,20 @@ if __name__ == '__main__':
                     if verbose:
                         sys.stderr.write("Creating sync file for {:s}.\n".format(wav))
                     try:
-                        ultratils.psync.sync2text(wav, chan=channel, pstretch=pstretch)
+                        idxfile = received_indexes
+                        if raw_data_index is True and idxfile is None:
+                            idxfile = "{}.idx.txt".format(basename)
+                        ultratils.psync.sync2text(wav, chan=channel, algorithm=algorithm, received_indexes=idxfile, summary=summary)
                     except Exception as e:
                         print e
                         sys.stderr.write("Error creating sync file for {:s}. Skipping.\n".format(wav))
         else:
             if verbose:
                 sys.stderr.write("Creating sync file for {:s}.\n".format(fname))
-
-            ultratils.psync.sync2text(fname, chan=channel, pstretch=pstretch)
+            idxfile = received_indexes
+            if raw_data_index is True and idxfile is None:
+                idxfile = os.path.splitext(fname)[0] + '.idx.txt'
+            ultratils.psync.sync2text(fname, chan=channel, algorithm=algorithm, received_indexes=idxfile, summary=summary)
 
     if verbose:
         print "Ending at: ", datetime.now().time()

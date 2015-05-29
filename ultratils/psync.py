@@ -1,8 +1,11 @@
 from __future__ import division
+import sys
 import numpy as np
 import wave
 from contextlib import closing
 import audiolabel
+
+# Algorithms to detect synchronization pulses.
 
 NORM_SYNC_THRESH = 0.2  # normalized threshold for detecting synchronizaton signal.
 MIN_SYNC_TIME = 0.0005   # minimum time threshold must be exceeded to detect synchronization signal
@@ -48,9 +51,9 @@ all of which are above threshold.'''
     run_ends = np.where(difs == -1)[0]
     return run_starts[np.where((run_ends - run_starts) > min_run)[0]]
 
-def sync_no_pstretch(sig):
+def sync_impulse(sig):
     '''Find and return indexes of synchronization points from ultrasound unit,
-*without* the pstretch unit. Sync points are defined as the signal peaks that
+simple impulse sync signal. Sync points are defined as the signal peaks that
 are the higher than all their neighbors that exceed a threshold, which is a
 percentage of the signal maximum.'''
     sig = abs(sig)
@@ -65,44 +68,77 @@ percentage of the signal maximum.'''
         peaks[idx] = s + np.argmax(bounded[s:e])
     return peaks
     
-def sync2text(wavname, chan, pstretch=True):
+def sync2text(wavname, chan, algorithm, received_indexes=None, summary=False):
     '''Find the synchronization signals in an acquisition's .wav file and
 create a text file that contains frame numbers and time stamps for each pulse.
 
 chan = channel number where sync signal is found (0 == first channel)
-pstretch = flag to choose sync algorithm, depending on whether pstretch unit was used
+algorithm = name of sync algorithm
+received_indexes = filename of an index file containing the indexes of the
+   data frames received during acquisition
 '''
     (syncsig, rate) = loadsync(wavname, chan)
-    if pstretch:
+    if algorithm == 'impulse':
+        syncsamp = sync_impulse(syncsig)
+    elif algorithm == 'pstretch':
         syncsamp = sync_pstretch(syncsig, NORM_SYNC_THRESH, MIN_SYNC_TIME * rate)
-    else:
-        syncsamp = sync_no_pstretch(syncsig)
     synctimes = np.round(syncsamp / rate, decimals=4)
-    print "Found {0:d} synchronization pulses.".format(len(syncsamp))
+    if summary is True:
+        sys.stderr.write("Found {0:d} synchronization pulses.\n".format(len(syncsamp)))
     dtimes = np.diff(synctimes)
-    print "Frame durations range [{0:1.4f} {1:1.4f}].".format(dtimes.min(), dtimes.max())
+    if summary is True:
+        sys.stderr.write("Frame durations range [{0:1.4f} {1:1.4f}].\n".format(dtimes.min(), dtimes.max()))
+
+    if received_indexes is not None:
+        raw_indexes = np.loadtxt(received_indexes, dtype=int)
+        rd_idx = 0
+    last_frame = -1
     outname = wavname.replace('.ch1.wav', '').replace('.ch2.wav','').replace('.wav','')
     txtname = outname + '.sync.txt'
     tgname = outname + '.sync.TextGrid'
     lm = audiolabel.LabelManager()
-    intvl_tier = audiolabel.IntervalTier(name="frameidx", start=0.0,
+    pulse_tier = audiolabel.IntervalTier(name="pulse_idx", start=0.0,
                                          end=np.round(len(syncsig) / rate, decimals=4))
-    lm.add(intvl_tier)
-    intvl_tier.add(audiolabel.Label(t1=0.0, t2=synctimes[0], text=''))
+    lm.add(pulse_tier)
+    pulse_tier.add(audiolabel.Label(t1=0.0, t2=synctimes[0], text=''))
+    if received_indexes is not None:
+        raw_data_tier = audiolabel.IntervalTier(name="raw_data_idx", start=0.0,
+                                             end=np.round(len(syncsig) / rate, decimals=4))
+        lm.add(raw_data_tier)
+        raw_data_tier.add(audiolabel.Label(t1=0.0, t2=synctimes[0], text=''))
     t1 = synctimes[0]
     with open(txtname, 'w') as fout:
         for idx,t in enumerate(synctimes):
-            fout.write("{0:0.4f}\t{1:d}\n".format(t,idx))
+            if received_indexes is not None:
+                try:
+                    if raw_indexes[rd_idx] == last_frame + 1:
+                        dframe = rd_idx
+                        rd_idx += 1
+                    else:
+                        dframe = 'NA'
+                except IndexError:
+                    dframe = 'NA'
+            if received_indexes is None:
+                fout.write("{0:0.4f}\t{1:d}\n".format(t,idx))
+            else:
+                fout.write("{0:0.4f}\t{1:d}\t{2:s}\n".format(t,idx,str(dframe)))
             try:
                 t2 = synctimes[idx+1]
             except IndexError:
                 t2 = t + dtimes.min()
-            intvl_tier.add(audiolabel.Label(t1=t1, t2=t2, text=str(idx)))
+            pulse_tier.add(audiolabel.Label(t1=t1, t2=t2, text=str(idx)))
+            if received_indexes is not None:
+                raw_data_tier.add(audiolabel.Label(t1=t1, t2=t2, text=str(dframe)))
             t1 = t2
+            last_frame += 1
     t2 = t1 + dtimes.min()
-    intvl_tier.add(audiolabel.Label(t1=t1, t2=t2, text=''))
-    if t2 > intvl_tier.end:
-        intvl_tier.end = t2
+    pulse_tier.add(audiolabel.Label(t1=t1, t2=t2, text=''))
+    if t2 > pulse_tier.end:
+        pulse_tier.end = t2
+    if received_indexes is not None:
+        raw_data_tier.add(audiolabel.Label(t1=t1, t2=t2, text=''))
+        if t2 > raw_data_tier.end:
+            raw_data_tier.end = t2
     with open(tgname, 'w') as tgout:
         tgout.write(lm._as_string(fmt="praat_long"))
  
