@@ -15,6 +15,12 @@ cdef cart2pol(NPFLOAT_t x, NPFLOAT_t y):
     cdef NPFLOAT_t theta = np.arctan2(y,x)
     return theta, radius
 
+cdef pol2cart(NPFLOAT_T radius, NPFLOAT_T theta):
+    """Convert from polar to cartesian coordinates."""
+    x = radius * np.cos(theta)
+    y = radius * np.sin(theta)
+    return x, y
+
 cpdef scanconvert(np.ndarray[NPLONG_t, ndim=2] Iin, indt=None, indr=None):
     '''Convert data from a .bpr to image data.'''
     framedim = indt.shape
@@ -106,6 +112,14 @@ probe = Probe object
         self.bmp_index = bmp_index
         self.bpr_index = bpr_index
         self.bmp = np.zeros(self.xreg.shape, dtype=NPLONG)
+
+    def bmp_overlay(self, theta, radius):
+        """Return points specified in polar (bpr) coordinates as cartesian points that can be plotted over a scanconverted bmp.
+theta = bpr scanline index
+radius = bpr scanline height index"""
+        points[:] = np.zeros(self.bmp.shape, dtype=NPLONG) * np.nan
+        points.ravel()[theta]
+        return indx, indy        
 
     def as_bmp(self, frame):
         """Return bpr frame data as a converted bitmap.
