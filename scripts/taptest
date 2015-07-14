@@ -1,0 +1,178 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''Analyze ultrasound taptest files.'''
+
+import os, sys, os.path, fnmatch
+import sys
+import getopt
+from datetime import datetime
+
+import ultratils.taptest
+import audiolabel
+
+VERSION = '0.1.0'
+
+standard_usage_str = """taptest [optional args] file1.wav [fileN.wav...]           # file mode
+
+    taptest [optional args] --seek dir1 [dirN...]    # seek mode
+
+Optional arguments:
+
+  --verbose
+    Display verbose messages.
+
+  --wav_algorithm='peakdiff,impulse' (default)
+    Comma-separated list of algorithms used to detect the tap in the .wav file.
+
+  --bpr_algorithm='standard_dev' (default)
+    Name of the algorithm used to detect the tap in the .bpr file.
+"""
+
+ver_usage_str = 'taptest --version|-v'
+help_usage_str = 'taptest --help|-h'
+
+def usage():
+    print ('\n' + standard_usage_str)
+    print ('\n' + ver_usage_str)
+    print ('\n' + help_usage_str)
+
+def version():
+    print """
+taptest Version %s
+""" % (VERSION)
+
+def help():
+    print """
+taptest - Find taps in .wav file and .bpr file.
+
+taptest reads audio data from a .wav file and finds a microphone tap event.
+It also reads data from a .bpr file and finds the tap event in the images.
+The tap times are entered into the synchronization textgrid.
+
+Usage:
+
+    %s
+
+    %s
+
+    %s
+
+In file mode the program operates on one or more .bpr file command line
+arguments. The corresponding .wav and .sync.TextGrid files are automatically
+detected, and a new .tap.TextGrid files are created in the same directory as
+the .bpr files.
+
+In seek mode the program scans one or more directories for *.bpr files and
+operates on each one it finds.
+
+Use --verbose to turn on status messages as files are processed.
+""" % (standard_usage_str, ver_usage_str, help_usage_str)
+
+def do_test(bpr, wav_alg, bpr_alg):
+    '''Perform a tap test for the bpr.'''
+    lm = audiolabel.LabelManager(
+        from_file=bpr + '.sync.TextGrid',
+        from_type='praat'
+    )
+    ataptier = audiolabel.PointTier(
+        name='acoustic_tap',
+        end=lm.tier('pulse_idx').end
+    )
+    lm.add(ataptier)
+    itaptier = audiolabel.IntervalTier(
+        name='image_tap',
+        end=lm.tier('pulse_idx').end
+    )
+    lm.add(itaptier)
+
+    pulsetier = lm.tier('pulse_idx')
+    rawtier = lm.tier('raw_data_idx')
+
+    atimes = {}
+    for alg in wav_alg.split(','):
+        if alg == 'peakdiff':
+            atime = ultratils.taptest.peakdiff(bpr + '.wav')
+            try:
+                atimes[atime].append('peakdiff')
+            except:
+                atimes[atime] = ['peakdiff']
+        elif alg == 'impulse':
+            atime = ultratils.taptest.impulse(bpr + '.wav')
+            ataptier.add(audiolabel.Label('impulse', atime))
+    for t,algs in atimes.iteritems():
+        ataptier.add(audiolabel.Label(','.join(algs), t))
+
+    # TODO: implement bpr_alg
+    # TODO: don't hardcode depth and factor
+    fr_idx = ultratils.taptest.standard_dev(bpr, 69, 1.5)
+    fr_search = '^{:d}$'.format(fr_idx)
+    rawlabel = rawtier.search(fr_search)[0]
+    certainty = 'true'
+    if rawtier.prev(rawlabel).text == 'NA':
+        certainty = 'maybe'
+    itaptier.add(audiolabel.Label(certainty, rawlabel.t1, rawlabel.t2))
+
+    if verbose:
+        ap_idx = pulsetier.label_at(atime).text
+        im_idx = pulsetier.label_at(rawlabel.center).text
+        sys.stdout.write(
+            "Acoustic tap at pulse index {:s}. Image tap at pulse index {:s}.\n".format(ap_idx, im_idx)
+        )
+    with open(bpr + '.sync.tap.TextGrid', 'w') as tgout:
+        tgout.write(lm._as_string(fmt="praat_long"))
+    
+
+if __name__ == '__main__':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "wav_algorithm=", "bpr_algorithm="])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    seekmode = False
+    verbose = False
+    wav_algorithm = 'peakdiff,impulse'
+    bpr_algorithm = 'standard_dev'
+    for o, a in opts:
+        if o in ('-h', '--help'):
+            help()
+            sys.exit(0)
+        elif o in ('-v', '--version'):
+            version()
+            sys.exit(0)
+        elif o == '--seek':
+            seekmode = True
+        elif o == '--verbose':
+            verbose = True
+        elif o == '--wav_algorithm':
+            wav_algorithm = a
+        elif o == '--bpr_algorithm':
+            bpr_algorithm = a
+    if len(args) == 0:
+        usage()
+        sys.exit(2)
+
+    if verbose:
+        print "Starting at: ", datetime.now().time()
+    for fname in args:
+        if seekmode:
+            bprlist = []
+            for root, dirnames, filenames in os.walk(fname):
+                for filename in fnmatch.filter(filenames, '*.bpr'):
+                    bpr = os.path.join(root, filename)
+                    if verbose:
+                        sys.stderr.write("Creating .tap.TextGrid file for {:s}.\n".format(bpr))
+                    try:
+                        do_test(bpr, wav_algorithm, bpr_algorithm)
+                    except Exception as e:
+                        print e
+                        sys.stderr.write("Error creating .tap.TextGrid for {:s}. Skipping.\n".format(bpr))
+        else:
+            if verbose:
+                sys.stderr.write("Creating .tap.TextGrid file for {:s}.\n".format(fname))
+            do_test(fname, wav_algorithm, bpr_algorithm)
+
+    if verbose:
+        print "Ending at: ", datetime.now().time()
+
