@@ -26,6 +26,7 @@ setup(
     'scripts/bpr2bmp',
     'scripts/psync',
     'scripts/sepchan',
+    'scripts/taptest',
     'scripts/ultraproc',
     'scripts/ultrasession.py',
     'scripts/wait_for_input'
