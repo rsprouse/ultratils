@@ -36,5 +36,5 @@ factor is multiplied by the mean standard deviation to find a threshold'''
     threshold = factor * np.mean(stds)
     # Find the frame indexes where the threshold is exceeded.
     high = np.where(stds > threshold)[0]
-    # Find the first frame index that is not the first or second frame.
-    return high[np.where(high > 1)[0][0]]
+    # Find the first frame index that is not in the first five frames.
+    return high[np.where(high > 4)[0][0]]

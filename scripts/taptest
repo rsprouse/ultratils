@@ -8,10 +8,17 @@ import sys
 import getopt
 from datetime import datetime
 
+import numpy as np
+
 import ultratils.taptest
 import audiolabel
 
-VERSION = '0.1.0'
+import ultratils.pysonix.bprreader
+import ultratils.pysonix.probe
+import ultratils.pysonix.scanconvert
+import Image
+
+VERSION = '0.1.1'
 
 standard_usage_str = """taptest [optional args] file1.wav [fileN.wav...]           # file mode
 
@@ -99,6 +106,7 @@ def do_test(bpr, wav_alg, bpr_alg):
                 atimes[atime] = ['peakdiff']
         elif alg == 'impulse':
             atime = ultratils.taptest.impulse(bpr + '.wav')
+            print atime
             ataptier.add(audiolabel.Label('impulse', atime))
     for t,algs in atimes.iteritems():
         ataptier.add(audiolabel.Label(','.join(algs), t))
@@ -114,14 +122,25 @@ def do_test(bpr, wav_alg, bpr_alg):
     itaptier.add(audiolabel.Label(certainty, rawlabel.t1, rawlabel.t2))
 
     if verbose:
-        ap_idx = pulsetier.label_at(atime).text
-        im_idx = pulsetier.label_at(rawlabel.center).text
+        ap_idx = int(pulsetier.label_at(atime).text)
+        im_idx = int(pulsetier.label_at(rawlabel.center).text)
         sys.stdout.write(
-            "Acoustic tap at pulse index {:s}. Image tap at pulse index {:s}.\n".format(ap_idx, im_idx)
+            "Acoustic tap at pulse index {:d}. Image tap at pulse index {:d}.\n".format(ap_idx, im_idx)
         )
     with open(bpr + '.sync.tap.TextGrid', 'w') as tgout:
         tgout.write(lm._as_string(fmt="praat_long"))
-    
+
+    # Make images for checking.
+    rdr = ultratils.pysonix.bprreader.BprReader(bpr)
+    first = ap_idx - np.random.randint(10, 17)
+    if first < 0:
+        first = 0
+    last = ap_idx + np.random.randint(10, 17)
+    if last > rdr.header.nframes:
+        last = rdr.header.nframes
+    for idx in range(first, last):
+        im = Image.fromarray(rdr.get_frame(idx).astype(np.uint8))
+        im.save("{:s}.pulse{:d}.bmp".format(bpr, idx))
 
 if __name__ == '__main__':
     try:
@@ -132,7 +151,7 @@ if __name__ == '__main__':
         sys.exit(2)
     seekmode = False
     verbose = False
-    wav_algorithm = 'peakdiff,impulse'
+    wav_algorithm = 'peakdiff'
     bpr_algorithm = 'standard_dev'
     for o, a in opts:
         if o in ('-h', '--help'):
