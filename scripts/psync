@@ -160,7 +160,7 @@ if __name__ == '__main__':
                 for filename in fnmatch.filter(filenames, '*.ch2.wav'):
                     basename = os.path.join(root, filename.replace('.ch2.wav',''))
                     wav = os.path.join(root, filename)
-                    if (os.path.isfile(basename + '.sync.txt') and not force):
+                    if os.path.isfile(basename + '.sync.txt') and force is False:
                         if verbose:
                             sys.stderr.write("Skipping {:s}.\n".format(wav))
                         continue
