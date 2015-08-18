@@ -16,7 +16,7 @@ import time
 PROJECT_DIR = r"C:\Users\lingguest\acq"
 RAWEXT = ".bpr"
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--random] [--no-prompt] [--freeze-only] [--no-ultracomm] [--no-audio]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--do-log] [--random] [--no-prompt] [--freeze-only] [--no-ultracomm] [--no-audio]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -69,6 +69,12 @@ Optional arguments:
     including path, if desired. If this option is not provided the script
     will default to 'ultracomm'.
 
+    --do-log
+    When this option is used ultracomm will produce a logfile that can
+    be used for acquisition post-mortem and debugging. The logfile has the
+    same name as the output file plus the extension '.log.txt'. No
+    logfile is produced if this option is not used.
+    
     --random
     When this option is provided stimuli will presented in a
     randomized order. When it is not provided stimuli will be presented they
@@ -169,7 +175,7 @@ def kill_rec(rec_proc):
     rec_proc.communicate()
     return None
     
-def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, av_hack):
+def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, do_log, av_hack):
     '''Perform a single acquisition, creating output files based on acqname.'''
 
     rec_proc = None
@@ -181,6 +187,8 @@ def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, av_h
         # TODO: check for errors running sox.
 
         ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname, '--named-pipe'] #, '--verbose', '1']
+        if do_log is True:
+            ult_args.append('--do-log')
         if av_hack is True:
             ult_args.append('--av-hack')
 
@@ -235,7 +243,7 @@ def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, av_h
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "random", "av-hack", "help", "stimulus=", "no-prompt", "freeze-only", "no-ultracomm", "no-audio"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "do-log", "random", "av-hack", "help", "stimulus=", "no-prompt", "freeze-only", "no-ultracomm", "no-audio"])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err))
         usage()
@@ -244,6 +252,7 @@ if __name__ == '__main__':
     datadir = PROJECT_DIR
     stimfile = None
     ultracomm = 'ultracomm'
+    do_log = False
     randomize = False
     av_hack = False
     freeze_only = False
@@ -264,6 +273,8 @@ if __name__ == '__main__':
         elif o == '--stimulus':
             stimulus = a
             stimfile = None
+        elif o == '--do-log':
+            do_log = True
         elif o in ("-r", "--random"):
             randomize = True
         elif o == '--av-hack':
@@ -320,12 +331,15 @@ if __name__ == '__main__':
                     shutil.copyfile(params, copyparams)
                     with open(os.path.join(acqdir, 'stim.txt'), 'w+') as stimout:
                         stimout.write(stim)
-                    acquire(acqbase,
-                            params,
-                            ultracomm,
-                            skip_ultracomm=skip_ultracomm,
-                            skip_audio=skip_audio,
-                            av_hack=av_hack)
+                    acquire(
+                        acqbase,
+                        params,
+                        ultracomm,
+                        skip_ultracomm=skip_ultracomm,
+                        skip_audio=skip_audio,
+                        do_log=do_log,
+                        av_hack=av_hack
+                    )
                 except KeyboardInterrupt:
                     pass   # Ignore Ctrl-C sent during acquire().
                 except IOError as e:
