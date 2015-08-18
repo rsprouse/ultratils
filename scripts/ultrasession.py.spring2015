@@ -1,0 +1,249 @@
+#!/usr/bin/env python
+
+# Run an ultrasound session.
+
+# This is the version used in spring 2015.
+
+import os, os.path, sys, subprocess, shutil
+import win32api, win32con, win32file
+from datetime import datetime
+from dateutil.tz import tzlocal
+import getopt
+import random
+#import ultratils.disk_streamer
+import time
+
+PROJECT_DIR = r"C:\Users\lingguest\acq"
+RAWEXT = ".bpr"
+
+standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--random] [--no-prompt] [--no-ultracomm] [--no-audio]'''
+help_usage_str = '''python ultrasession.py --help|-h'''
+
+def usage():
+    print('\n' + standard_usage_str)
+    print('\n' + help_usage_str + '\n')
+
+def help():
+    print('''
+ultrasession.py: Perform one or more ultrasound acquisitions with the
+ultracomm command line utility. Organize output into timestamped folders,
+one per acquisition. Postprocess synchronization signal and separate audio
+channels into separate speech and synchronization .wav files.
+''')
+    print('\n' + standard_usage_str)
+    print('''
+Required arguments:
+
+    --params paramfile
+    The name of an parameter file to pass to ultracomm.
+
+Optional arguments:
+
+    --datadir dir
+    The name of a directory where acquisitions will be collected.
+    Default is %s.
+
+    --stims stimfile
+    The name of a file containing stimuli, one per line. Each stimulus
+    line will correspond to one acquisition, and the stimulus line will be
+    copied to the file stim.txt in the acquisition subdirectory. If no
+    stimulus file is provided then ultrasession will perform a single
+    acquisition and stop.
+
+    --stimulus stimulus
+    A string containing a stimulus token. This string will be copied to
+    the stim.txt file in the acquisition subdirectory. When --stimulus is
+    provided ultrasession will perform a single acquisition and stop.
+
+    The --stims and --stimulus parameters are alternate ways of running
+    ultrasession. The --stims parameter is intended for running a series of
+    acquisitions in batch mode from the command line, and the --stimulus
+    parameter is more suitable for creating individual acquisitions under
+    the control of another application, such as from within a loop in
+    an opensesame experiment. If both the --stims and --stimulus parameters
+    are provided, the option appearing last in the argument list will
+    control the behavior of ultrasession.
+
+    --ultracomm ultracomm_cmd
+    The name of the ultracomm command to use to connect the Ultrasonix,
+    including path, if desired. If this option is not provided the script
+    will default to 'ultracomm'.
+
+    --random
+    When this option is provided stimuli will presented in a
+    randomized order. When it is not provided stimuli will be presented they
+    appear in the stimulus file.
+
+    --no-prompt
+    When this option is provided the operator will not be prompted to
+    press the Enter key to start an acquisition. Acquisition will begin
+    immediately.
+    
+    --no-ultracomm
+    When this option is provided then the ultracomm utility will not
+    run during the acquisition. Thus no .bpr or .idx.txt files will be
+    created. The timestamped acquisition directory will be created, and
+    the ultracomm parameter file and stim.txt will be created in the
+    acquisition directory. Audio will be captured and a .wav file
+    created unless the --no-audio paramter is specified.
+
+    --no-audio
+    When this option is provided then audio will not be captured during
+    the acquisition and no output .wav file will be created.
+
+'''.format(PROJECT_DIR))
+    
+
+def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio):
+    '''Perform a single acquisition, creating output files based on acqname.'''
+
+    if skip_ultracomm is False:
+        # Make sure Ultrasonix is frozen before we start recording.
+        frz_args = [ultracomm_cmd, '--params', paramsfile, '--freeze-only']
+        frz_proc = subprocess.Popen(frz_args)
+        frz_proc.wait()
+
+    if skip_audio is False:
+        rec_args = ['C:\\bin\\rec.exe', '--no-show-progress', '-c', '2', acqname + '.wav']
+        rec_proc = subprocess.Popen(rec_args, shell=True)
+
+    ult_args = [ultracomm_cmd, '--params', paramsfile, '--output', acqname, '--named-pipe']
+    if skip_ultracomm is False:
+        ult_proc = subprocess.Popen(ult_args)
+        pipename = r'\\.\pipe\ultracomm'
+        start = time.time()
+        fhandle = None
+        while not fhandle:
+            try:
+                fhandle = win32file.CreateFile(pipename, win32file.GENERIC_WRITE, 0, None, win32file.OPEN_EXISTING, 0, None)
+            except:
+                time.sleep(0.1)
+                fhandle = None
+                if time.time() - start > 10:
+                    raise IOError("Could not connect to named pipe")
+
+    # Wait for user interaction, then terminate ultracomm.
+    raw_input("Press Enter to end ultrasession.")
+
+    if skip_ultracomm is False:
+        win32file.WriteFile(fhandle, 'END')
+        ult_proc.wait()
+
+    if skip_audio is False:
+        # Send Ctrl-C to sox and ignore it in this script.
+        try:
+            win32api.GenerateConsoleCtrlEvent(win32con.CTRL_C_EVENT, 0)
+        except KeyboardInterrupt:
+            pass
+        rec_proc.wait()
+
+if __name__ == '__main__':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "random", "help", "stimulus=", "no-prompt", "no-ultracomm", "no-audio"])
+    except getopt.GetoptError as err:
+        print str(err)
+        usage()
+        sys.exit(2)
+    params = None
+    datadir = PROJECT_DIR
+    stimfile = None
+    ultracomm = 'ultracomm'
+    randomize = False
+    no_prompt = False
+    skip_ultracomm = False
+    skip_audio = False
+    stimulus = ''
+    for o, a in opts:
+        if o in ("-p", "--params"):
+            params = a
+        elif o in ("-d", "--datadir"):
+            datadir = a
+        elif o in ("-s", "--stims"):
+            stimfile = a
+            stimulus = ''
+        elif o in ("-u", "--ultracomm"):
+            ultracomm = a
+        elif o == '--stimulus':
+            stimulus = a
+            stimfile = None
+        elif o in ("-r", "--random"):
+            randomize = True
+        elif o in ("-h", "--help"):
+            help()
+            sys.exit(0)
+        elif o == "--no-prompt":
+            no_prompt = True
+        elif o == "--no-ultracomm":
+            skip_ultracomm = True
+        elif o == "--no-audio":
+            skip_audio = True
+    if params is None:
+        usage()
+        sys.exit(2)
+    stims = []
+    if stimfile is None:
+        stims = [stimulus]
+    else:
+        with open(stimfile, 'rb') as file:
+            for line in file.readlines():
+                stims.append(line.rstrip())
+    if randomize:
+        random.shuffle(stims)
+    for stim in stims:
+        if stimulus != '':
+            stim = stimulus
+        if no_prompt is False:
+            raw_input("Press <Enter> for acquisition.")
+        tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
+        acqdir = os.path.join(datadir, tstamp)
+        if not os.path.isdir(acqdir):
+            try:
+                os.mkdir(acqdir)
+            except:
+                print "Could not create {%s}!".format(acqdir)
+                raise
+        try:
+            if stim != '':
+                print("\n\n******************************\n\n")
+                print(stim)
+                print("\n\n******************************\n\n")
+
+            acqbase = os.path.join(acqdir, tstamp + RAWEXT)
+            try:
+                copyparams = os.path.join(acqdir, 'params.cfg')
+                print "Copying ", params, " to ", copyparams
+                shutil.copyfile(params, copyparams)
+                with open(os.path.join(acqdir, 'stim.txt'), 'w+') as stimout:
+                    stimout.write(stim)
+                acquire(acqbase,
+                        params,
+                        ultracomm,
+                        skip_ultracomm=skip_ultracomm,
+                        skip_audio=skip_audio)
+            except KeyboardInterrupt:
+                pass   # Ignore Ctrl-C sent during acquire().
+            except IOError:
+                print "Could not copy parameter file or create stim.txt! ", e
+                raise
+        except Exception as e:
+            print "Error in acquiring! ", e
+            raise
+    
+#        try:
+#            print "Separating audio channels"
+#            separate_channels(acqbase)
+#        except Exception as e:
+#            print "Error in separating audio channels", e
+#            raise
+#    
+#        try:
+#            print "Creating synchronization textgrid"
+#            wavname = acqbase + '.wav'
+#            print "synchronizing ", wavname
+#            sync2text(wavname)
+#            print "Created synchronization text file"
+#        except Exception as e:
+#            print "Error in creating synchronization textgrid!", e
+#            raise
+#
+#
