@@ -16,7 +16,7 @@ import time
 PROJECT_DIR = r"C:\Users\lingguest\acq"
 RAWEXT = ".bpr"
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--do-log] [--random] [--no-prompt] [--init-only] [--no-ultracomm] [--no-audio]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--do-log] [--log-versions] [--random] [--no-prompt] [--init-only] [--no-ultracomm] [--no-audio]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -75,6 +75,11 @@ Optional arguments:
     same name as the output file plus the extension '.log.txt'. No
     logfile is produced if this option is not used.
     
+    --log-versions
+    When this option is used ultrasession will query ultracomm for its
+    version and SDK versions and will log these in a versions.txt file
+    in the same directory as the .bpr.
+
     --random
     When this option is provided stimuli will presented in a
     randomized order. When it is not provided stimuli will be presented they
@@ -113,6 +118,16 @@ def init_ultracomm(paramsfile, ultracomm_cmd):
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.communicate()
 
+def write_versions(ultracomm, versionfile):
+    """Write version strings for ultracomm and ulterius sdk to a file."""
+    proc = subprocess.Popen([ultracomm, '--version'], stdout=subprocess.PIPE)
+    uvers = proc.communicate()[0]
+    proc = subprocess.Popen([ultracomm, '--sdk-version'], stdout=subprocess.PIPE)
+    sdk = proc.communicate()[0]
+    with open(versionfile, 'w+') as vout:
+        vout.write("ultracomm name: " + ultracomm + "\n")
+        vout.write("ultracomm version: " + uvers + "\n")
+        vout.write("ulterius SDK version: " + sdk + "\n")
 
 def run_ultracomm_and_block(args):
     """Run ultracomm, wait for user input, and return ultracomm returncode."""
@@ -175,7 +190,7 @@ def kill_rec(rec_proc):
     rec_proc.communicate()
     return None
     
-def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, do_log, av_hack):
+def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, do_log, log_versions, av_hack):
     '''Perform a single acquisition, creating output files based on acqname.'''
 
     rec_proc = None
@@ -243,7 +258,7 @@ def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, do_l
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "do-log", "random", "av-hack", "help", "stimulus=", "no-prompt", "init-only", "no-ultracomm", "no-audio"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "do-log", "log-versions", "random", "av-hack", "help", "stimulus=", "no-prompt", "init-only", "no-ultracomm", "no-audio"])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err))
         usage()
@@ -253,6 +268,7 @@ if __name__ == '__main__':
     stimfile = None
     ultracomm = 'ultracomm'
     do_log = False
+    log_versions = False
     randomize = False
     av_hack = False
     init_only = False
@@ -275,6 +291,8 @@ if __name__ == '__main__':
             stimfile = None
         elif o == '--do-log':
             do_log = True
+        elif o == '--log-versions':
+            log_versions = True
         elif o in ("-r", "--random"):
             randomize = True
         elif o == '--av-hack':
@@ -338,12 +356,17 @@ if __name__ == '__main__':
                         skip_ultracomm=skip_ultracomm,
                         skip_audio=skip_audio,
                         do_log=do_log,
+                        log_versions=log_versions,
                         av_hack=av_hack
                     )
+                    
+                    if log_versions is True:
+                        versfile = os.path.join(acqdir, 'versions.txt')
+                        write_versions(ultracomm, versfile)
                 except KeyboardInterrupt:
                     pass   # Ignore Ctrl-C sent during acquire().
                 except IOError as e:
-                    sys.stderr.write("Could not copy parameter file or create stim.txt! ")
+                    sys.stderr.write("Could not copy parameter file or create stim.txt or versions.txt!\n")
                     sys.stderr.write(str(e) + "\n")
                     raise
             except Exception as e:
