@@ -350,22 +350,3 @@ if __name__ == '__main__':
                 sys.stderr.write("Error in acquiring!\n")
                 sys.stderr.write(str(e) + "\n")
                 raise
-    
-#        try:
-#            print "Separating audio channels"
-#            separate_channels(acqbase)
-#        except Exception as e:
-#            print "Error in separating audio channels", e
-#            raise
-#    
-#        try:
-#            print "Creating synchronization textgrid"
-#            wavname = acqbase + '.wav'
-#            print "synchronizing ", wavname
-#            sync2text(wavname)
-#            print "Created synchronization text file"
-#        except Exception as e:
-#            print "Error in creating synchronization textgrid!", e
-#            raise
-#
-#
