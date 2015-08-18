@@ -16,7 +16,7 @@ import time
 PROJECT_DIR = r"C:\Users\lingguest\acq"
 RAWEXT = ".bpr"
 
-standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--do-log] [--random] [--no-prompt] [--freeze-only] [--no-ultracomm] [--no-audio]'''
+standard_usage_str = '''python ultrasession.py --params paramfile [--datadir dir] [--stims filename] [--stimulus stimulus] [--ultracomm ultracomm_cmd] [--do-log] [--random] [--no-prompt] [--init-only] [--no-ultracomm] [--no-audio]'''
 help_usage_str = '''python ultrasession.py --help|-h'''
 
 def usage():
@@ -88,8 +88,8 @@ Optional arguments:
     --av-hack
     Attempt to ignore access violation errors in ultracomm.
     
-    --freeze-only
-    When this option is used then the --freeze-only parameter is sent
+    --init-only
+    When this option is used then the --init-only parameter is sent
     to ultracomm and no acquisition is performed.
 
     --no-ultracomm
@@ -107,9 +107,9 @@ Optional arguments:
 '''.format(PROJECT_DIR))
     
 
-def freeze(paramsfile, ultracomm_cmd):
+def init_ultracomm(paramsfile, ultracomm_cmd):
     '''Freeze ultrasound.'''
-    frz_args = [ultracomm_cmd, '--params', paramsfile, '--freeze-only', '--verbose', '1']
+    frz_args = [ultracomm_cmd, '--params', paramsfile, '--init-only', '--verbose', '1']
     frz_proc = subprocess.Popen(frz_args)
     frz_proc.communicate()
 
@@ -243,7 +243,7 @@ def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, do_l
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "do-log", "random", "av-hack", "help", "stimulus=", "no-prompt", "freeze-only", "no-ultracomm", "no-audio"])
+        opts, args = getopt.getopt(sys.argv[1:], "p:d:s:u:r:h", ["params=", "datadir=", "stims=", "ultracomm=", "do-log", "random", "av-hack", "help", "stimulus=", "no-prompt", "init-only", "no-ultracomm", "no-audio"])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err))
         usage()
@@ -255,7 +255,7 @@ if __name__ == '__main__':
     do_log = False
     randomize = False
     av_hack = False
-    freeze_only = False
+    init_only = False
     no_prompt = False
     skip_ultracomm = False
     skip_audio = False
@@ -282,8 +282,8 @@ if __name__ == '__main__':
         elif o in ("-h", "--help"):
             help()
             sys.exit(0)
-        elif o == "--freeze-only":
-            freeze_only = True
+        elif o == "--init-only":
+            init_only = True
         elif o == "--no-prompt":
             no_prompt = True
         elif o == "--no-ultracomm":
@@ -300,8 +300,8 @@ if __name__ == '__main__':
         with open(stimfile, 'rb') as file:
             for line in file.readlines():
                 stims.append(line.rstrip())
-    if freeze_only is True:
-        freeze(params, ultracomm)
+    if init_only is True:
+        init_ultracomm(params, ultracomm)
     else:
         if randomize:
             random.shuffle(stims)
