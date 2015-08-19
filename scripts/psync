@@ -3,15 +3,12 @@
 
 '''Detect ultrasound synchronization signal unit in a .wav file.'''
 
-import os, sys, os.path, fnmatch
-import sys
-import subprocess
+import os, sys, fnmatch
 import getopt
 from datetime import datetime
 import ultratils.psync
 
 VERSION = '0.2.0'
-SOX_CMD = r'C:\bin\sox.exe'
 
 standard_usage_str = """psync --channel channel [optional args] file1.wav [fileN.wav...]           # file mode
 
