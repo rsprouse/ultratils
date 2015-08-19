@@ -10,7 +10,7 @@ import getopt
 from datetime import datetime
 
 VERSION = '0.2.0'
-SOX_CMD = r'C:\bin\sox.exe'
+SOX_CMD = r'sox'
 
 standard_usage_str = """sepchan [optional args] file1.wav [fileN.wav...]           # file mode
 
@@ -75,7 +75,11 @@ def separate_channels(wavname):
     for num in ['1', '2']:
         ch = basename + '.ch' + num + '.wav'
         sox_args = [SOX_CMD, wavname, ch, 'remix', num]
-        sox_proc = subprocess.Popen(sox_args, shell=True)
+        sox_proc = None
+        if sys.platform == 'win32':
+            sox_proc = subprocess.Popen(sox_args, shell=True)
+        else:
+            sox_proc = subprocess.Popen(sox_args)
         sox_proc.wait()
         if sox_proc.returncode != 0:
             #for line in sox_proc.stderr:
