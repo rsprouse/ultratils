@@ -163,7 +163,7 @@ if __name__ == '__main__':
             for root, dirnames, filenames in os.walk(fname):
                 for filename in fnmatch.filter(filenames, '*.bpr'):
                     bprname = os.path.join(root, filename)
-                    wav = os.path.join(root, bprname + '.wav')
+                    wav = bprname + '.wav'
                     if os.path.isfile(bprname + '.sync.txt') and force is False:
                         if verbose:
                             sys.stderr.write("Skipping {:s}.\n".format(wav))
