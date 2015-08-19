@@ -68,7 +68,7 @@ percentage of the signal maximum.'''
         peaks[idx] = s + np.argmax(bounded[s:e])
     return peaks
     
-def sync2text(wavname, chan, algorithm, received_indexes=None, summary=False):
+def sync2text(wavname, chan, algorithm, outbasename, received_indexes=None, summary=False):
     '''Find the synchronization signals in an acquisition's .wav file and
 create a text file that contains frame numbers and time stamps for each pulse.
 
@@ -76,6 +76,8 @@ chan = channel number where sync signal is found (0 == first channel)
 algorithm = name of sync algorithm
 received_indexes = filename of an index file containing the indexes of the
    data frames received during acquisition
+outbasename = basename for output synchronization files, which will consist of
+   outbasename + '.sync.(txt|TextGrid)'
 '''
     (syncsig, rate) = loadsync(wavname, chan)
     if algorithm == 'impulse':
@@ -94,8 +96,8 @@ received_indexes = filename of an index file containing the indexes of the
         rd_idx = 0
     last_frame = -1
     outname = wavname.replace('.ch1.wav', '').replace('.ch2.wav','').replace('.wav','')
-    txtname = outname + '.sync.txt'
-    tgname = outname + '.sync.TextGrid'
+    txtname = outbasename + '.sync.txt'
+    tgname = outbasename + '.sync.TextGrid'
     lm = audiolabel.LabelManager()
     pulse_tier = audiolabel.IntervalTier(name="pulse_idx", start=0.0,
                                          end=np.round(len(syncsig) / rate, decimals=4))

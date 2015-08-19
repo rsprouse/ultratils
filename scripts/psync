@@ -14,11 +14,14 @@ standard_usage_str = """psync --channel channel [optional args] file1.wav [fileN
 
     psync --channel channel [optional args] --seek dir1 [dirN...]    # seek mode
 
-Required arguments:
+Required arguments (file mode only):
 
   --channel
     Index of channel in .wav file where synchronization signal is found.
     Use 0 for the first channel and 1 for the second.
+
+    When --seek is used, channel 1 (second channel) is assumed. This assumption will
+    be overridden if --channel is provided.
 
 Optional arguments:
 
@@ -92,12 +95,15 @@ files and have the same basename as the input file with a .sync.txt suffix.
 If any .sync.txt files already exist with the same names they will be
 overwritten.
 
-In seek mode the program scans one or more directories for *.ch2.wav files and
-operates on each one it finds. If it does not find a '.sync.txt' file that
-corresponds to the .wav then it performs a synchroniation. If it does
-find a corresponding '.sync.txt' file then it skips processing that .wav. Use
+In seek mode the program scans one or more directories for *.bpr files and
+operates on corresponding *.bpr.wav files. If it does not find a '.sync.txt'
+file that corresponds to the .bpr then it performs a synchronization. If it does
+find a corresponding '.sync.txt' file then it skips processing that .bpr. Use
 --force to prevent skipping and to overwrite existing .sync.txt files in seek
 mode.
+
+In seek mode the *.bpr.wav files are assumed to be two-channel audio files
+with the synchronization signal in channel 1 (the second channel).
 
 Use --verbose to turn on status messages as .wav files are processed.
 """ % (standard_usage_str, ver_usage_str, help_usage_str)
@@ -143,8 +149,7 @@ if __name__ == '__main__':
         elif o == '--received_indexes':
             received_indexes = a
             raw_data_index = True
-    if len(args) == 0 or channel is None:
-        print channel
+    if len(args) == 0 or (channel is None and seekmode is False):
         usage()
         sys.exit(2)
 
@@ -152,12 +157,14 @@ if __name__ == '__main__':
         print "Starting at: ", datetime.now().time()
     for fname in args:
         if seekmode:
+            if channel is None:
+                channel = 1
             wavlist = []
             for root, dirnames, filenames in os.walk(fname):
-                for filename in fnmatch.filter(filenames, '*.ch2.wav'):
-                    basename = os.path.join(root, filename.replace('.ch2.wav',''))
-                    wav = os.path.join(root, filename)
-                    if os.path.isfile(basename + '.sync.txt') and force is False:
+                for filename in fnmatch.filter(filenames, '*.bpr'):
+                    bprname = os.path.join(root, filename)
+                    wav = os.path.join(root, bprname + '.wav')
+                    if os.path.isfile(bprname + '.sync.txt') and force is False:
                         if verbose:
                             sys.stderr.write("Skipping {:s}.\n".format(wav))
                         continue
@@ -166,8 +173,8 @@ if __name__ == '__main__':
                     try:
                         idxfile = received_indexes
                         if raw_data_index is True and idxfile is None:
-                            idxfile = "{}.idx.txt".format(basename)
-                        ultratils.psync.sync2text(wav, chan=channel, algorithm=algorithm, received_indexes=idxfile, summary=summary)
+                            idxfile = "{}.idx.txt".format(bprname)
+                        ultratils.psync.sync2text(wav, chan=channel, algorithm=algorithm, outbasename=bprname, received_indexes=idxfile, summary=summary)
                     except Exception as e:
                         print e
                         sys.stderr.write("Error creating sync file for {:s}. Skipping.\n".format(wav))
@@ -177,7 +184,8 @@ if __name__ == '__main__':
             idxfile = received_indexes
             if raw_data_index is True and idxfile is None:
                 idxfile = os.path.splitext(fname)[0] + '.idx.txt'
-            ultratils.psync.sync2text(fname, chan=channel, algorithm=algorithm, received_indexes=idxfile, summary=summary)
+            outbasename = fname.replace('.ch1.wav', '').replace('.ch2.wav','').replace('.wav','')
+            ultratils.psync.sync2text(fname, chan=channel, algorithm=algorithm, outbasename=outbasename, received_indexes=idxfile, summary=summary)
 
     if verbose:
         print "Ending at: ", datetime.now().time()
