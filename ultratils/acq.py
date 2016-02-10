@@ -9,7 +9,7 @@ import ultratils.pysonix.bprreader
 
 # Regex that matches a timezone offset at the end of an acquisition directory
 # name.
-tzoffsetre = re.compile(r'([+-]\d{4})$')
+utcoffsetre = re.compile(r'([+-]\d{4})$')
 
 tstamp_format = '%Y-%m-%dT%H%M%S'
 
@@ -26,7 +26,7 @@ class Acq():
     def dirname(self):
         name = "{:}{:}".format(
               self.datetime.replace(microsecond=0).isoformat().replace(":",""),
-              self.tzoffset
+              self.utcoffset
         )
         return name
 
@@ -38,13 +38,15 @@ class Acq():
     def time_str(self):
         return self.datetime.time()
 
-    def __init__(self, datetime_obj, tzoffset, imaging_params, versions=None,
-        stimulus=None, n_pulse_idx=None, n_raw_data_idx=None, pulse_max=None,
-        pulse_min=None, n_frames=None, bad_data=None, image_h=None,
+    def __init__(self,
+        datetime_obj, utcoffset, imaging_params=None,
+        versions=None, stimulus=None, n_pulse_idx=None,
+        n_raw_data_idx=None, pulse_max=None, pulse_min=None,
+        n_frames=None, bad_data=None, image_h=None,
         image_w=None, probe=None
     ):
         self.datetime = datetime_obj
-        self.tzoffset = tzoffset
+        self.utcoffset = utcoffset
         self.imaging_params = imaging_params
         self.versions = versions
         self.stimulus = stimulus
@@ -92,14 +94,14 @@ e.g. '../2015-05-05T103922-0700'.
 """
     dirs = [os.path.normpath(d) for d in os.path.split(path)]
     d = dirs[-1]
-    m = tzoffsetre.search(d)
+    m = utcoffsetre.search(d)
     bad_data = False
     if m is None:
         raise AcqError("Incorrect timestamp for path {:}".format(path))
     else:
-        tzoffset = m.groups()[0]
+        utcoffset = m.groups()[0]
         try:
-            dt = datetime.strptime(tzoffsetre.sub('', d), tstamp_format)
+            dt = datetime.strptime(utcoffsetre.sub('', d), tstamp_format)
         except ValueError:
             raise AcqError("Incorrect timestamp for path {:}".format(path))
     if type == 'bpr':
@@ -142,7 +144,7 @@ e.g. '../2015-05-05T103922-0700'.
         pulse_min = None
 
     
-    return Acq(datetime_obj=dt, tzoffset=tzoffset, imaging_params=params,
+    return Acq(datetime_obj=dt, utcoffset=utcoffset, imaging_params=params,
         versions=versions, stimulus=stimulus, n_pulse_idx=n_pulse_idx,
         n_raw_data_idx=n_raw_data_idx, pulse_max=pulse_max, pulse_min=pulse_min,
         n_frames=n_frames, bad_data=bad_data, image_h=image_h, image_w=image_w,
