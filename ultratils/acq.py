@@ -3,15 +3,24 @@
 import os
 import re
 from datetime import datetime
+from dateutil.tz import tzlocal
 import numpy as np
 import audiolabel
 import ultratils.pysonix.bprreader
 
 # Regex that matches a timezone offset at the end of an acquisition directory
 # name.
-utcoffsetre = re.compile(r'([+-]\d{4})$')
+utcoffsetre = re.compile(r'(?P<offset>(?P<sign>[-+])(?P<hours>0\d|1[12])(?P<minutes>[012345]\d))')
 
 tstamp_format = '%Y-%m-%dT%H%M%S'
+
+def timestamp():
+    """Create a timestamp for an acquisition, using local time."""
+    ts = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
+    m = utcoffsetre.search(ts)
+    utcoffset = m.group('offset')
+    ts = utcoffsetre.sub('', ts)
+    return (ts, utcoffset)
 
 class AcqError(Exception):
     """Base class for errors in this module."""
@@ -38,27 +47,67 @@ class Acq():
     def time_str(self):
         return self.datetime.time()
 
-    def __init__(self,
-        datetime_obj, utcoffset, imaging_params=None,
-        versions=None, stimulus=None, n_pulse_idx=None,
-        n_raw_data_idx=None, pulse_max=None, pulse_min=None,
-        n_frames=None, bad_data=None, image_h=None,
-        image_w=None, probe=None
-    ):
-        self.datetime = datetime_obj
-        self.utcoffset = utcoffset
-        self.imaging_params = imaging_params
-        self.versions = versions
-        self.stimulus = stimulus
-        self.n_pulse_idx = n_pulse_idx
-        self.n_raw_data_idx = n_raw_data_idx
-        self.pulse_max = pulse_max
-        self.pulse_min = pulse_min
-        self.n_frames = n_frames
-        self.bad_data = bad_data
-        self.image_h = image_h
-        self.image_w = image_w
-        self.probe = probe
+    def __init__(self, gather=None, type='bpr', timestamp=None, params_file='params.cfg'):
+        if gather is not None:
+            dirs = [os.path.normpath(d) for d in os.path.split(gather)]
+            timestamp = dirs[-1]
+            m = utcoffsetre.search(timestamp)
+            if m is None:
+                raise AcqError("Incorrect timestamp for path {:}".format(gather))
+            else:
+                utcoffset = m.group()
+            try:
+                dt = datetime.strptime(utcoffsetre.sub('', timestamp), tstamp_format)
+            except ValueError:
+                raise AcqError("Incorrect timestamp for path {:}".format(gather))
+        self.timestamp = timestamp
+        if type == 'bpr':
+            try:
+                bpr = os.path.join(gather, "{:}.bpr".format(d))
+                bprreader = ultratils.pysonix.bprreader.BprReader(bpr)
+                self.n_frames = bprreader.header.nframes
+                self.image_h = bprreader.header.h
+                self.image_w = bprreader.header.w
+                self.probe = bprreader.header.probe
+            except:
+                bad_data = True
+                n_frames = None
+        else:
+            raise AcqError("Unknown type '{:}' specified.".format(type))
+        self.params = read_params(os.path.join(gather, params_file))
+        try:
+            with open(os.path.join(gather, 'versions.txt')) as f:
+                self.versions = f.read()
+        except IOError:
+            self.versions = None
+        try:
+            with open(os.path.join(gather, 'stim.txt')) as f:
+                self.stimulus = f.read()
+        except IOError:
+            self.stimulus = None
+        try:
+            tg = "{:}.sync.TextGrid".format(bpr)
+            lm = audiolabel.LabelManager(from_file=tg, from_type='praat')
+            durs = [l.duration for l in lm.tier('pulse_idx').search(r'^\d+$')]
+            self.n_pulse_idx = len(durs)
+            self.n_raw_data_idx = len([l for l in lm.tier('raw_data_idx').search(r'^\d+$')])
+            self.pulse_max = np.max(durs)
+            self.pulse_min = np.min(durs)
+        except IOError as e:
+            self.n_pulse_idx = None
+            self.n_raw_data_idx = None
+            self.pulse_max = None
+            self.pulse_min = None
+#        try:
+#            datetime_obj.tzinfo
+#            print "has tzinfo"
+#            print datetime_obj.tzinfo
+#        except AttributeError:
+#            print "no tzinfo"
+#        self.datetime = datetime_obj
+#        self.utcoffset = utcoffset
+#        self.stimulus = stimulus
+#        self.bad_data = bad_data
 
 def read_params(pfile):
     """Read the parameter configuration file into a dict."""
@@ -92,61 +141,4 @@ construct a relative path that includes the timestamped directory name,
 e.g. '../2015-05-05T103922-0700'.
 
 """
-    dirs = [os.path.normpath(d) for d in os.path.split(path)]
-    d = dirs[-1]
-    m = utcoffsetre.search(d)
-    bad_data = False
-    if m is None:
-        raise AcqError("Incorrect timestamp for path {:}".format(path))
-    else:
-        utcoffset = m.groups()[0]
-        try:
-            dt = datetime.strptime(utcoffsetre.sub('', d), tstamp_format)
-        except ValueError:
-            raise AcqError("Incorrect timestamp for path {:}".format(path))
-    if type == 'bpr':
-        try:
-            bpr = os.path.join(path, "{:}.bpr".format(d))
-            bprreader = ultratils.pysonix.bprreader.BprReader(bpr)
-            n_frames = bprreader.header.nframes
-            image_h = bprreader.header.h
-            image_w = bprreader.header.w
-            probe = bprreader.header.probe
-        except:
-            bad_data = True
-            n_frames = None
-    else:
-        raise AcqError("Unknown type '{:}' specified.".format(type))
-        
-    params = read_params(os.path.join(path, params_file))
-    try:
-        with open(os.path.join(path, 'versions.txt')) as f:
-            versions = f.read()
-    except IOError:
-        versions = None
-    try:
-        with open(os.path.join(path, 'stim.txt')) as f:
-            stimulus = f.read()
-    except IOError:
-        stimulus = None
-    try:
-        tg = "{:}.sync.TextGrid".format(bpr)
-        lm = audiolabel.LabelManager(from_file=tg, from_type='praat')
-        durs = [l.duration for l in lm.tier('pulse_idx').search(r'^\d+$')]
-        n_pulse_idx = len(durs)
-        n_raw_data_idx = len([l for l in lm.tier('raw_data_idx').search(r'^\d+$')])
-        pulse_max = np.max(durs)
-        pulse_min = np.min(durs)
-    except IOError as e:
-        n_pulse_idx = None
-        n_raw_data_idx = None
-        pulse_max = None
-        pulse_min = None
-
-    
-    return Acq(datetime_obj=dt, utcoffset=utcoffset, imaging_params=params,
-        versions=versions, stimulus=stimulus, n_pulse_idx=n_pulse_idx,
-        n_raw_data_idx=n_raw_data_idx, pulse_max=pulse_max, pulse_min=pulse_min,
-        n_frames=n_frames, bad_data=bad_data, image_h=image_h, image_w=image_w,
-        probe=probe
-    )
+    pass
