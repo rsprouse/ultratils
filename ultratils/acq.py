@@ -9,7 +9,7 @@ import ultratils.pysonix.bprreader
 
 # Regex that matches a timezone offset at the end of an acquisition directory
 # name.
-tzoffsetre = re.compile(r'([+-]\d{4,5})$')
+tzoffsetre = re.compile(r'([+-]\d{4})$')
 
 tstamp_format = '%Y-%m-%dT%H%M%S'
 
