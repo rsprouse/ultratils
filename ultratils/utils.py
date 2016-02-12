@@ -62,12 +62,9 @@ DataFrame correspond to the first axis of the array.
                     from_file=a.abs_sync_tg,
                     from_type='praat'
                 )
-                print lm.tier('raw_data_idx').label_at(rec['fr_id']).t1
-                print lm.tier('raw_data_idx').label_at(rec['fr_id']).text
                 fr_idx = int(lm.tier('raw_data_idx').label_at(rec['fr_id']).text)
             data[idx] = rdr.get_frame(fr_idx)
         except Exception as e: 
-            print e
             fr_idx = None
         row = a.as_dict(fields)
         row['raw_data_idx'] = fr_idx
