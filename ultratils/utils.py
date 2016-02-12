@@ -35,7 +35,11 @@ DataFrame correspond to the first axis of the array.
     rows = []
     data = None
     for idx, rec in frames.iterrows():
-        a = acq.Acq(timestamp=rec['tstamp'], expdir=expdir, dtype=rec['dtype'])
+        a = ultratils.acq.Acq(
+            timestamp=rec['tstamp'],
+            expdir=expdir,
+            dtype=rec['dtype']
+        )
         a.gather()
         if idx == 0:
             for v in a.runtime_vars:
