@@ -3,6 +3,7 @@
 import xml.etree.ElementTree as ET
 import pkg_resources
 
+# TODO: make this inherit from a base Probe class that has pitch and radius attributes.
 class Probe:
     '''A class for storing probe parameters.'''
     def __init__(self, probe_id):
