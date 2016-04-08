@@ -26,6 +26,41 @@ def timestamp():
     ts = utcoffsetre.sub('', ts)
     return (ts, utcoffset)
 
+def is_timestamp(s):
+    """Check a string to verify that it is a proper Acq timestamp.
+
+Return the utcoffset portion of the string if the string is verified.
+
+Raise an AcqError if the string is not verified.
+"""
+    m = utcoffsetre.search(s)
+    if m is None:
+        raise AcqError("Incorrect timestamp for path {:}".format(s))
+    else:
+        utcoffset = m.group()
+    try:
+        dt = datetime.strptime(utcoffsetre.sub('', s), tstamp_format)
+    except ValueError:
+        raise AcqError("Incorrect timestamp for path {:}".format(s))
+
+def read_params(pfile):
+    """Read the parameter configuration file into a dict."""
+    comment = re.compile(r'\s*#')
+    params = {}
+    with open(pfile, 'r') as f:
+        for line in f.readlines():
+            line = line.strip()
+            try:    # Remove comments.
+                (assignment, toss) = comment.split(line, 1)
+            except ValueError:
+                assignment = line
+            try:
+                (param, val) = assignment.strip().split("=", 1)
+                params[param] = val
+            except ValueError as e:
+                pass
+    return params
+
 class AcqError(Exception):
     """Base class for errors in this module."""
     def __init__(self, msg):
@@ -109,6 +144,7 @@ class Acq():
         self.relpath = self.abspath.replace(self.expdir, '')
         for v in self.runtime_vars:
             setattr(self, v.name, v.val)
+
     def gather(self, params_file='params.cfg'):
         """Gather the metadata from an acquisition directory."""
         bpr = ''
@@ -161,38 +197,3 @@ class Acq():
         for fld in fields:
             d[fld] = getattr(self, fld)
         return d
-
-def is_timestamp(s):
-    """Check a string to verify that it is a proper Acq timestamp.
-
-Return the utcoffset portion of the string if the string is verified.
-
-Raise an AcqError if the string is not verified.
-"""
-    m = utcoffsetre.search(s)
-    if m is None:
-        raise AcqError("Incorrect timestamp for path {:}".format(s))
-    else:
-        utcoffset = m.group()
-    try:
-        dt = datetime.strptime(utcoffsetre.sub('', s), tstamp_format)
-    except ValueError:
-        raise AcqError("Incorrect timestamp for path {:}".format(s))
-
-def read_params(pfile):
-    """Read the parameter configuration file into a dict."""
-    comment = re.compile(r'\s*#')
-    params = {}
-    with open(pfile, 'r') as f:
-        for line in f.readlines():
-            line = line.strip()
-            try:    # Remove comments.
-                (assignment, toss) = comment.split(line, 1)
-            except ValueError:
-                assignment = line
-            try:
-                (param, val) = assignment.strip().split("=", 1)
-                params[param] = val
-            except ValueError as e:
-                pass
-    return params
