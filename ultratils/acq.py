@@ -154,7 +154,7 @@ class Acq():
         lm = self._sync_lm
         if lm is None:
             lm = audiolabel.LabelManager(
-                from_file=self.sync_textgrid,
+                from_file=self.abs_sync_tg,
                 from_type='praat'
             )
             self._sync_lm = lm
