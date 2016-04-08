@@ -1,6 +1,6 @@
 # Class that defines an acquisition.
 
-import os
+import os, sys
 import re
 from datetime import datetime
 from dateutil.tz import tzlocal
@@ -95,16 +95,19 @@ class Acq():
     def runtime_vars(self):
         if self._runtime_vars is None:
             RuntimeVar = namedtuple('RuntimeVar', 'name, val')
-            df = pd.read_csv(self.abs_runtime_vars, sep='\s+', header=None)
-            (mypath, ts) = os.path.split(self.relpath)
-            is_timestamp(ts)
-            t = []
-            myvars = df.iloc[:,0].tolist()
-            myvars.reverse()
-            for var in myvars:
-                (mypath, val) = os.path.split(mypath)
-                t.insert(0, RuntimeVar(var, val))
-            self._runtime_vars = t
+            try:
+                df = pd.read_csv(self.abs_runtime_vars, sep='\s+', header=None)
+                (mypath, ts) = os.path.split(self.relpath)
+                is_timestamp(ts)
+                t = []
+                myvars = df.iloc[:,0].tolist()
+                myvars.reverse()
+                for var in myvars:
+                    (mypath, val) = os.path.split(mypath)
+                    t.insert(0, RuntimeVar(var, val))
+                self._runtime_vars = t
+            except IOError:
+                 sys.stderr.write('INFO: no runtime_vars.txt')
         return self._runtime_vars
 
     @property
@@ -207,8 +210,9 @@ class Acq():
         self._abspath = None
         self._runtime_vars = None
         self.relpath = self.abspath.replace(self.expdir, '')
-        for v in self.runtime_vars:
-            setattr(self, v.name, v.val)
+        if self.runtime_vars is not None:
+            for v in self.runtime_vars:
+                setattr(self, v.name, v.val)
         self._image_reader = None
         self._framerate = None
         self._sync_lm = None
