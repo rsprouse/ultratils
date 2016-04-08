@@ -13,6 +13,14 @@ from ultratils.pysonix.bprreader import BprReader
 import ultratils.pysonix.probe
 import ultratils.pysonix.scanconvert
 
+# These are needed for make_mp4()
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.animation as manimation
+import scipy.io.wavfile
+import subprocess
+
 # Regex that matches a timezone offset at the end of an acquisition directory
 # name.
 utcoffsetre = re.compile(r'(?P<offset>(?P<sign>[-+])(?P<hours>0\d|1[12])(?P<minutes>[012345]\d))')
@@ -270,3 +278,57 @@ class Acq():
         for fld in fields:
             d[fld] = getattr(self, fld)
         return d
+
+    def make_mp4(self, t1=None, t2=None, outname=None, metadata={}, fill=True, audio=True):
+        """Make an .mp4, starting at t1 and ending at t2. The metadata parameter is a dict suitable for use with the Matplotlib animation ffmpeg writer. If fille is True, insert blank for missing frames."""
+        labels = self.sync_lm.tier('raw_data_idx').tslice(t1=t1, t2=t2)
+        if self.dtype == 'bpr':
+            blankbpr = self.image_converter.default_bpr_frame(0)
+            blank = self.image_converter.as_bmp(blankbpr).astype(np.uint8)
+        else:
+            raise AcqError(
+                "make_mp4() not implemented for acquisition with dtype {}.".format(
+                    self.dtype
+                )
+            )
+        self.blank = blank  # TODO: remove
+
+        fig = plt.figure()
+        p = plt.imshow(blank, vmin=0, vmax=255, cmap='Greys_r')
+
+        FFMpegWriter = manimation.writers['ffmpeg']
+        writer = FFMpegWriter(
+            fps=self.framerate,
+            metadata=metadata
+        )
+        self.writer = writer  # TODO: remove
+        with writer.saving(fig, 'tmp_vid.mp4', 100):
+            for l in labels:
+                try:
+                    rdidx = int(l.text)
+                    d = self.image_reader.get_frame(rdidx)
+                    frame = np.flipud(self.image_converter.as_bmp(d).astype(np.uint8))
+                except ValueError:   # l.text is 'NA'
+                    frame = blank
+                p.set_data(frame)
+                plt.show()
+                writer.grab_frame()
+                self.frame = frame  # TODO: remove
+
+        if audio is True:
+            arate, d = scipy.io.wavfile.read(self.abs_audio_file)
+            aidx0 = int(np.round(t1 * arate))
+            aidx1 = int(np.round(t2 * arate))
+            snip = d[aidx0:aidx1,0]
+            scipy.io.wavfile.write('tmp_aud.wav', arate, snip)
+            subprocess.check_call([
+                'ffmpeg', '-y',
+                '-i', 'tmp_vid.mp4',
+                '-i', 'tmp_aud.wav',
+                '-vcodec', 'copy', '-shortest', '-strict', '-2',
+                outname
+            ])
+            os.remove('tmp_aud.wav')
+            os.remove('tmp_vid.mp4')
+        else:
+            os.rename('tmp_vid.wav', outname)
