@@ -125,6 +125,10 @@ class Acq():
         return os.path.join(self.abspath, "{:}.{:}".format(self.timestamp, self.dtype))
 
     @property
+    def abs_audio_file(self):
+        return '{:}.wav'.format(self.abs_image_file)
+
+    @property
     def abs_versions_file(self):
         return os.path.join(self.abspath, "versions.txt")
 
