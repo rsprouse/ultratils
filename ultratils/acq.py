@@ -10,6 +10,8 @@ import numpy as np
 import pandas as pd
 import audiolabel
 from ultratils.pysonix.bprreader import BprReader
+import ultratils.pysonix.probe
+import ultratils.pysonix.scanconvert
 
 # Regex that matches a timezone offset at the end of an acquisition directory
 # name.
@@ -134,6 +136,65 @@ class Acq():
     def abs_runtime_vars(self):
         return os.path.join(self.expdir, "runtime_vars.txt")
 
+    @property
+    def framerate(self):
+        """Return the frames/second."""
+        rate = self._framerate
+        if rate is None:
+            frames = self.sync_lm.tier('pulse_idx').search(r'\w')
+            t1 = frames[0].t1
+            t2 = frames[-1].t2
+            rate = len(frames) / (t2 - t1)
+            self._framerate = rate
+        return rate
+
+    @property
+    def sync_lm(self):
+        """The LabelManager for .sync.textgrid."""
+        lm = self._sync_lm
+        if lm is None:
+            lm = audiolabel.LabelManager(
+                from_file=self.sync_textgrid,
+                from_type='praat'
+            )
+            self._sync_lm = lm
+        return lm
+
+    @property
+    def image_reader(self):
+        """The image reader."""
+        rdr = self._image_reader
+        if rdr is None:
+            if self.dtype == 'bpr':
+                rdr = BprReader(self.abs_image_file)
+            self._image_reader = rdr
+        return rdr
+
+    @property
+    def probe(self):
+        """A Probe object."""
+        probe = self._probe
+        if probe is None:
+            if self.dtype == 'bpr':
+                probe = ultratils.pysonix.probe.Probe(
+                    self.image_reader.header.probe
+                )
+                self._probe = probe
+        return probe
+
+    @property
+    def image_converter(self):
+        """Converter object for converting raw image data to interpolated format."""
+        c = self._image_converter
+        if c is None:
+            if self.dtype == 'bpr':
+                c = ultratils.pysonix.scanconvert.Converter(
+                    self.image_reader.header,
+                    self.probe
+                )
+                self._image_converter = c
+        return c
+
     def __init__(self, timestamp=None, expdir=None, dtype='bpr'):
         self.utcoffset = is_timestamp(timestamp)
         self.timestamp = timestamp
@@ -144,14 +205,18 @@ class Acq():
         self.relpath = self.abspath.replace(self.expdir, '')
         for v in self.runtime_vars:
             setattr(self, v.name, v.val)
+        self._image_reader = None
+        self._framerate = None
+        self._sync_lm = None
+        self._image_converter = None
+        self._probe = None
 
     def gather(self, params_file='params.cfg'):
         """Gather the metadata from an acquisition directory."""
         bpr = ''
         if self.dtype == 'bpr':
             try:
-                bpr = os.path.join(self.abs_image_file)
-                rdr = BprReader(bpr)
+                rdr = self.image_reader
             except:
                 self.n_frames = None
                 self.image_h = None
