@@ -291,7 +291,6 @@ class Acq():
                     self.dtype
                 )
             )
-        self.blank = blank  # TODO: remove
 
         fig = plt.figure()
         p = plt.imshow(blank, vmin=0, vmax=255, cmap='Greys_r')
@@ -301,7 +300,6 @@ class Acq():
             fps=self.framerate,
             metadata=metadata
         )
-        self.writer = writer  # TODO: remove
         with writer.saving(fig, 'tmp_vid.mp4', 100):
             for l in labels:
                 try:
@@ -313,7 +311,6 @@ class Acq():
                 p.set_data(frame)
                 plt.show()
                 writer.grab_frame()
-                self.frame = frame  # TODO: remove
 
         if audio is True:
             arate, d = scipy.io.wavfile.read(self.abs_audio_file)
@@ -326,6 +323,7 @@ class Acq():
                 '-i', 'tmp_vid.mp4',
                 '-i', 'tmp_aud.wav',
                 '-vcodec', 'copy', '-shortest', '-strict', '-2',
+# TODO: remove hardcoded scale values
                 '-vf', 'scale=692x350', '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
                 outfile
             ])
