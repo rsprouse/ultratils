@@ -326,6 +326,7 @@ class Acq():
                 '-i', 'tmp_vid.mp4',
                 '-i', 'tmp_aud.wav',
                 '-vcodec', 'copy', '-shortest', '-strict', '-2',
+                '-vf', 'scale=692x350', '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
                 outfile
             ])
             os.remove('tmp_aud.wav')
