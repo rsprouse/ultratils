@@ -279,7 +279,7 @@ class Acq():
             d[fld] = getattr(self, fld)
         return d
 
-    def make_mp4(self, t1=None, t2=None, outname=None, metadata={}, fill=True, audio=True):
+    def make_mp4(self, t1=None, t2=None, outfile=None, metadata={}, fill=True, audio=True):
         """Make an .mp4, starting at t1 and ending at t2. The metadata parameter is a dict suitable for use with the Matplotlib animation ffmpeg writer. If fille is True, insert blank for missing frames."""
         labels = self.sync_lm.tier('raw_data_idx').tslice(t1=t1, t2=t2)
         if self.dtype == 'bpr':
@@ -326,9 +326,9 @@ class Acq():
                 '-i', 'tmp_vid.mp4',
                 '-i', 'tmp_aud.wav',
                 '-vcodec', 'copy', '-shortest', '-strict', '-2',
-                outname
+                outfile
             ])
             os.remove('tmp_aud.wav')
             os.remove('tmp_vid.mp4')
         else:
-            os.rename('tmp_vid.wav', outname)
+            os.rename('tmp_vid.wav', outfile)
