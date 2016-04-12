@@ -27,6 +27,9 @@ utcoffsetre = re.compile(r'(?P<offset>(?P<sign>[-+])(?P<hours>0\d|1[12])(?P<minu
 
 tstamp_format = '%Y-%m-%dT%H%M%S'
 
+# Named tuple used for runtime variables.
+RuntimeVar = namedtuple('RuntimeVar', 'name, val')
+
 # TODO: remove? rename?
 def timestamp():
     """Create a timestamp for an acquisition, using local time."""
@@ -102,7 +105,6 @@ class Acq():
     @property
     def runtime_vars(self):
         if self._runtime_vars is None:
-            RuntimeVar = namedtuple('RuntimeVar', 'name, val')
             try:
                 df = pd.read_csv(self.abs_runtime_vars, sep='\s+', header=None)
                 (mypath, ts) = os.path.split(self.relpath)
