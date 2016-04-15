@@ -60,7 +60,7 @@ class Exp():
         self.timestamps = []
         self._image_converter = None
 
-    def gather(self, lazy=True):
+    def gather(self):
         """Gather the acquisitions in the experiment."""
         re_sort = False
         for mydir, subdirs, files in os.walk(self.abspath):
@@ -74,7 +74,6 @@ class Exp():
                     Acq(
                         timestamp=ts,
                         expdir=self.abspath,
-                        lazy=lazy,
                         image_converter=self._image_converter
                     )
                 )
