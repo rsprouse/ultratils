@@ -212,7 +212,7 @@ class Acq():
                 self._image_converter = c
         return c
 
-    def __init__(self, timestamp=None, expdir=None, dtype='bpr'):
+    def __init__(self, timestamp=None, expdir=None, dtype='bpr', image_converter=None):
         self.utcoffset = is_timestamp(timestamp)
         self.timestamp = timestamp
         self.expdir = os.path.normpath(expdir)
@@ -226,7 +226,7 @@ class Acq():
         self._image_reader = None
         self._framerate = None
         self._sync_lm = None
-        self._image_converter = None
+        self._image_converter = image_converter
         self._probe = None
 
     def gather(self, params_file='params.cfg'):

@@ -58,6 +58,7 @@ class Exp():
         self.relpath = self.abspath.replace(self.expdir, '')
         self.acquisitions = []
         self.timestamps = []
+        self._image_converter = None
         self.gather(lazy=lazy)
 
     def gather(self, lazy=True):
@@ -71,8 +72,16 @@ class Exp():
                 except ExpError:
                     continue
                 self.acquisitions.append(
-                    Acq(timestamp=ts, expdir=self.abspath)
+                    Acq(
+                        timestamp=ts,
+                        expdir=self.abspath,
+                        image_converter=self._image_converter
+                    )
                 )
+# TODO: there should be error checking of image size here and/or in Acq()
+                if self._image_converter is None:
+                    a = self.acquisitions[0]
+                    self._image_converter = a.image_converter
                 self.timestamps.append(ts)
                 re_sort = True
         if re_sort is True:
