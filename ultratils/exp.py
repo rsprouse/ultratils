@@ -52,18 +52,28 @@ class ExpError(Exception):
 class Exp():
     """An ultrasound experiment."""
 
-    def __init__(self, expdir=None):
+    def __init__(self, expdir=None, lazy=True):
         self.expdir = os.path.normpath(expdir)
         self.abspath = os.path.abspath(self.expdir)
         self.relpath = self.abspath.replace(self.expdir, '')
         self.acquisitions = []
+        self.timestamps = []
+        self.gather(lazy=lazy)
+
+    def gather(self, lazy=True):
+        """Gather the acquisitions in the experiment."""
+        re_sort = False
         for mydir, subdirs, files in os.walk(self.abspath):
             ts = os.path.split(mydir)[-1]
-            try:
-                is_timestamp(os.path.basename(ts))
-            except ExpError:
-                continue
-            self.acquisitions.append(
-                Acq(timestamp=ts, expdir=self.abspath)
-            )
-        self.acquisitions.sort(key=lambda a: pd.to_datetime(a.timestamp))
+            if ts not in self.timestamps:
+                try:
+                    is_timestamp(ts)
+                except ExpError:
+                    continue
+                self.acquisitions.append(
+                    Acq(timestamp=ts, expdir=self.abspath)
+                )
+                self.timestamps.append(ts)
+                re_sort = True
+        if re_sort is True:
+            self.acquisitions.sort(key=lambda a: pd.to_datetime(a.timestamp))
