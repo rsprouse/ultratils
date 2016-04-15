@@ -281,12 +281,16 @@ class Acq():
             d[fld] = getattr(self, fld)
         return d
 
-    def make_mp4(self, t1=None, t2=None, outfile=None, metadata={}, fill=True, audio=True):
-        """Make an .mp4, starting at t1 and ending at t2. The metadata parameter is a dict suitable for use with the Matplotlib animation ffmpeg writer. If fille is True, insert blank for missing frames."""
+    def make_mp4(self, t1=None, t2=None, outfile=None, metadata={}, fill=True, audio=True, corrected=True):
+        """Make an .mp4, starting at t1 and ending at t2. The metadata parameter is a dict suitable for use with the Matplotlib animation ffmpeg writer. If fille is True, insert blank for missing frames. If corrected is False use raw scanline data in rectangular format. If corrected is True interpolate the scanline data to correct for transducer geometry."""
         labels = self.sync_lm.tier('raw_data_idx').tslice(t1=t1, t2=t2)
+        blank_intensity = 0
         if self.dtype == 'bpr':
-            blankbpr = self.image_converter.default_bpr_frame(0)
-            blank = self.image_converter.as_bmp(blankbpr).astype(np.uint8)
+            if corrected is True:
+                blankbpr = self.image_converter.default_bpr_frame(blank_intensity)
+                blank = self.image_converter.as_bmp(blankbpr).astype(np.uint8)
+            else:
+                blank = self.image_reader.get_frame(0).astype(np.uint8) * 0
         else:
             raise AcqError(
                 "make_mp4() not implemented for acquisition with dtype {}.".format(
@@ -294,8 +298,17 @@ class Acq():
                 )
             )
 
-        fig = plt.figure()
-        p = plt.imshow(blank, vmin=0, vmax=255, cmap='Greys_r')
+        # See http://stackoverflow.com/questions/13714454/specifying-and-saving-a-figure-with-exact-size-in-pixels
+        # for discussion of how to set the size of a matplotlib figure
+        # without a border.
+        #imdims = (blank.shape[1] * 0.01, blank.shape[0] * 0.01)
+        fig = plt.figure(frameon=False) #, figsize=imdims, dpi=100)
+        #fig.set_size_inches(frame.shape[1], frame.shape[0])
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+#ax.imshow(your_image, aspect='normal')
+        p = ax.imshow(blank, vmin=0, vmax=255, cmap='Greys_r') #, aspect='normal')
 
         FFMpegWriter = manimation.writers['ffmpeg']
         writer = FFMpegWriter(
@@ -307,7 +320,10 @@ class Acq():
                 try:
                     rdidx = int(l.text)
                     d = self.image_reader.get_frame(rdidx)
-                    frame = np.flipud(self.image_converter.as_bmp(d).astype(np.uint8))
+                    if corrected is True:
+                        frame = np.flipud(self.image_converter.as_bmp(d).astype(np.uint8))
+                    else:
+                        frame = np.flipud(d)
                 except ValueError:   # l.text is 'NA'
                     frame = blank
                 p.set_data(frame)
