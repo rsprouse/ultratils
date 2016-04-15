@@ -52,14 +52,13 @@ class ExpError(Exception):
 class Exp():
     """An ultrasound experiment."""
 
-    def __init__(self, expdir=None, lazy=True):
+    def __init__(self, expdir=None):
         self.expdir = os.path.normpath(expdir)
         self.abspath = os.path.abspath(self.expdir)
         self.relpath = self.abspath.replace(self.expdir, '')
         self.acquisitions = []
         self.timestamps = []
         self._image_converter = None
-        self.gather(lazy=lazy)
 
     def gather(self, lazy=True):
         """Gather the acquisitions in the experiment."""
@@ -75,6 +74,7 @@ class Exp():
                     Acq(
                         timestamp=ts,
                         expdir=self.abspath,
+                        lazy=lazy,
                         image_converter=self._image_converter
                     )
                 )
