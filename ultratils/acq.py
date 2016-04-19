@@ -295,11 +295,11 @@ class Acq():
         """Return image frame data at time t."""
         frame = None
         try:
-            fidx = self.raw_data_idx.labe_at(t)
-            frame = self.reader.get_frame(fidx)
+            fidx = int(self.raw_data_idx.label_at(t).text)
+            frame = self.image_reader.get_frame(fidx)
             if convert is True:
                 frame = self.image_converter.as_bmp(frame)
-        except:
+        except ValueError:    # label is 'NA'
             pass
         return frame
 
