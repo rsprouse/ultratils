@@ -178,6 +178,16 @@ class Acq():
         return lm
 
     @property
+    def raw_data_idx(self):
+        """The LabelManager 'raw_data_idx' tier."""
+        return self.sync_lm.tier('raw_data_idx')
+
+    @property
+    def pulse_idx(self):
+        """The LabelManager 'pulse_idx' tier."""
+        return self.sync_lm.tier('pulse_idx')
+
+    @property
     def image_reader(self):
         """The image reader."""
         rdr = self._image_reader
