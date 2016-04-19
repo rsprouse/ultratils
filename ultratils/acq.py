@@ -291,6 +291,18 @@ class Acq():
             d[fld] = getattr(self, fld)
         return d
 
+    def frame_at(self, t, convert=False):
+        """Return image frame data at time t."""
+        frame = None
+        try:
+            fidx = self.raw_data_idx.labe_at(t)
+            frame = self.reader.get_frame(fidx)
+            if convert is True:
+                frame = self.image_converter.as_bmp(frame)
+        except:
+            pass
+        return frame
+
     def make_mp4(self, t1=None, t2=None, outfile=None, metadata={}, fill=True, audio=True, corrected=True):
         """Make an .mp4, starting at t1 and ending at t2. The metadata parameter is a dict suitable for use with the Matplotlib animation ffmpeg writer. If fille is True, insert blank for missing frames. If corrected is False use raw scanline data in rectangular format. If corrected is True interpolate the scanline data to correct for transducer geometry."""
         labels = self.sync_lm.tier('raw_data_idx').tslice(t1=t1, t2=t2)
