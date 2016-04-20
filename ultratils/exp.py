@@ -85,3 +85,12 @@ class Exp():
                 re_sort = True
         if re_sort is True:
             self.acquisitions.sort(key=lambda a: pd.to_datetime(a.timestamp))
+
+    def get_acq(self, timestamp):
+        """Get an acquisition based on its timestamp."""
+        acq = None
+        for a in self.acquisitions:
+            if a.timestamp == timestamp:
+                acq = a
+                break
+        return acq
