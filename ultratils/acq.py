@@ -222,12 +222,12 @@ class Acq():
                 self._image_converter = c
         return c
 
-    def __init__(self, timestamp=None, expdir=None, dtype='bpr', image_converter=None):
+    def __init__(self, timestamp=None, expdir=None, dtype='bpr', abspath=abspath, image_converter=None):
         self.utcoffset = is_timestamp(timestamp)
         self.timestamp = timestamp
         self.expdir = os.path.normpath(expdir)
         self.dtype = dtype
-        self._abspath = None
+        self._abspath = abspath
         self._runtime_vars = None
         self.relpath = self.abspath.replace(self.expdir, '')
         if self.runtime_vars is not None:

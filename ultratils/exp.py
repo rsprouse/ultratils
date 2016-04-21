@@ -74,6 +74,7 @@ class Exp():
                     Acq(
                         timestamp=ts,
                         expdir=self.abspath,
+                        abspath=os.path.abspath(mydir),
                         image_converter=self._image_converter
                     )
                 )
