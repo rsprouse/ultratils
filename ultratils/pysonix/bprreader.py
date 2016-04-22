@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import struct
 import numpy as np
 import hashlib
@@ -26,7 +27,9 @@ class Header(object):
 
 class BprReader:
     def __init__(self, filename, checksum=False):
-        self._fhandle = open(filename, 'rb')
+        self.filename = os.path.abspath(filename)
+        self._fhandle = None
+        self.open()
         self.header = Header(self._fhandle)
         if self.header.filetype != 2:
             msg = "Unexpected filetype! Expected 2 and got {filetype:d}"
@@ -45,12 +48,15 @@ class BprReader:
                 self.csums[idx] = csum
         self._fhandle.seek(self.header.packed_size)
         self._cursor = self._fhandle.tell()
+        self.close()
 
     def __iter__(self):
         return self
 
     def next(self):
         '''Get the next image frame.'''
+        if self._fhandle is None:
+            self.open()
         try:
             self._fhandle.seek(self._cursor)
             packed_data = self._fhandle.read(self.framesize)
@@ -62,11 +68,20 @@ class BprReader:
  
     def get_frame(self, idx=None):
         '''Get the image frame specified by idx. Do not advance the read location of _fhandle.'''
+        if self._fhandle is None:
+            self.open()
         self._fhandle.seek(self.header.packed_size + (idx * self.framesize))
         packed_data = self._fhandle.read(self.framesize)
         self._fhandle.seek(self._cursor)
         data = np.array(struct.unpack(self.data_fmt, packed_data))
         return data.reshape([self.header.w, self.header.h]).T
 
+    def open(self):
+        self._fhandle = open(self.filename, 'rb')
+
     def close(self):
-        self._fhandle.close()
+        try:
+            self._fhandle.close()
+            self._fhandle = None
+        except Exception as e:
+            raise e
