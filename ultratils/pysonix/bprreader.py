@@ -31,7 +31,17 @@ class BprReader:
         self._fhandle = None
         self.open()
         self.header = Header(self._fhandle)
-        if self.header.filetype != 2:
+        # TODO: when we have more image readers other than bpr, they all should
+        # have attributes for the image height and width, number of frames, and
+        # data type (i.e. the numeric type of the data values), and we make
+        # these attributes of the reader object itself; they won't necessarily
+        # be found in the header.
+        self.h = self.header.h
+        self.w = self.header.w
+        self.nframes = self.header.nframes
+        if self.header.filetype == 2:
+            self.dtype = np.uint8
+        else:
             msg = "Unexpected filetype! Expected 2 and got {filetype:d}"
             raise ValueError, msg.format(filetype=self.header.filetype)
         # these data_fmt and framesize values are specific to .bpr
