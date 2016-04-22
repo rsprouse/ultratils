@@ -1,5 +1,7 @@
 # Class that defines an acquisition.
 
+# TODO: make sure image_reader file handles get cleaned up properly when this object gets cleaned up
+
 import os, sys
 import re
 from datetime import datetime
