@@ -119,7 +119,10 @@ class Acq():
                     t.insert(0, RuntimeVar(var, val))
                 self._runtime_vars = t
             except IOError:
-                 sys.stderr.write('INFO: no runtime_vars.txt')
+                if os.path.split(self.relpath)[0] == '/':
+                    pass
+                else:
+                    sys.stderr.write('INFO: no runtime_vars.txt')
         return self._runtime_vars
 
     @property
