@@ -83,6 +83,11 @@ class AcqError(Exception):
     def __str__(self):
         return repr(self.msg)
 
+class RuntimeVars():
+    """A class for storing runtime variables."""
+    def __init__(self):
+        pass
+
 class Acq():
     """An ultrasound acquisition."""
 # TODO: remove?
@@ -235,9 +240,10 @@ class Acq():
         self._abspath = abspath
         self._runtime_vars = None
         self.relpath = self.abspath.replace(self.expdir, '')
+        self.runvars = RuntimeVars()
         if self.runtime_vars is not None:
             for v in self.runtime_vars:
-                setattr(self, v.name, v.val)
+                setattr(self.runvars, v.name, v.val)
         self._image_reader = None
         self._framerate = None
         self._sync_lm = None
