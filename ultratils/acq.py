@@ -238,7 +238,15 @@ class Acq():
         self._image_reader = None
         self._framerate = None
         self._sync_lm = None
-        self._image_converter = image_converter
+        if image_converter is None:
+            self._image_converter = None
+        else:
+            if image_converter.input_h == self.image_reader.h and \
+               image_converter.input_w == self.image_reader.w:
+                self._image_converter = image_converter
+            else:
+                sys.stderr.write('INFO: ignoring non-matching image_converter for acquisition {:}.'.format(timestamp))
+                self._image_converter = None
         self._probe = None
 
     def gather(self, params_file='params.cfg'):
