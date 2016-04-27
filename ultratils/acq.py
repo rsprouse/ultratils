@@ -337,7 +337,7 @@ If missing_val is not None, frame_at() returns a tuple """
                         l = self.raw_data_idx.next(l)
                 elif missing_val is not None:
                     repfr = self.image_reader.get_frame(0)
-                    repfr[:] = missing_val
+                    repfr = (repfr * 0) + missing_val
                     l = None
                     break
                 else:
