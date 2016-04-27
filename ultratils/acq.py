@@ -310,17 +310,52 @@ class Acq():
             d[fld] = getattr(self, fld)
         return d
 
-    def frame_at(self, t, convert=False):
-        """Return image frame data at time t."""
+    def frame_at(self, t, convert=False, missing_val=None):
+        """Return image frame data at time t. If convert is True, use the acquisition's image_converter to do a scanconvert. If missing_val is True, return a replacement frame if the frame at time t is missing.
+
+By default frame_at() returns a 2D numpy array of image data or None if no image data is available at time t.
+If missing_val is not None, frame_at() returns a tuple """
         frame = None
-        try:
-            fidx = int(self.raw_data_idx.label_at(t).text)
-            frame = self.image_reader.get_frame(fidx)
-            if convert is True:
-                frame = self.image_converter.as_bmp(frame)
-        except ValueError:    # label is 'NA'
-            pass
-        return frame
+        repfr = None
+        l = self.raw_data_idx.label_at(t)
+        while True:
+            try:
+                fidx = int(l.text) # ValueError if 'NA' or ''
+                break              # Got a valid time
+            except ValueError:
+                if missing_val == 'prev':
+                    if self.raw_data_idx[0] == l:
+                        l = None
+                        break
+                    else:
+                        l = self.raw_data_idx.prev(l)
+                elif missing_val == 'next':
+                    if self.raw_data_idx[-1] == l:
+                        l = None
+                        break
+                    else:
+                        l = self.raw_data_idx.next(l)
+                elif missing_val is not None:
+                    repfr = self.image_reader.get_frame(0)
+                    repfr[:] = missing_val
+                    l = None
+                    break
+                else:
+                    l = None
+                    break
+        if l is not None:
+            if l == self.raw_data_idx.label_at(t):
+                frame = self.image_reader.get_frame(fidx)
+            else:
+                repfr = self.image_reader.get_frame(fidx)
+        if frame is not None and convert is True:
+            frame = self.image_converter.as_bmp(frame)
+        if repfr is not None and convert is True:
+            repfr = self.image_converter.as_bmp(repfr)
+        if missing_val is None:
+            return frame
+        else:
+            return (frame, repfr, l)
 
     def make_mp4(self, t1=None, t2=None, outfile=None, metadata={}, fill=True, audio=True, corrected=True):
         """Make an .mp4, starting at t1 and ending at t2. The metadata parameter is a dict suitable for use with the Matplotlib animation ffmpeg writer. If fille is True, insert blank for missing frames. If corrected is False use raw scanline data in rectangular format. If corrected is True interpolate the scanline data to correct for transducer geometry."""
