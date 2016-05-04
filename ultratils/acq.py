@@ -353,9 +353,9 @@ If missing_val is not None, frame_at() returns a tuple """
         if repfr is not None and convert is True:
             repfr = self.image_converter.as_bmp(repfr)
         if missing_val is None:
-            return frame
+            return (frame, l)
         else:
-            return (frame, repfr, l)
+            return (frame, l, repfr)
 
     def make_mp4(self, t1=None, t2=None, outfile=None, metadata={}, fill=True, audio=True, corrected=True):
         """Make an .mp4, starting at t1 and ending at t2. The metadata parameter is a dict suitable for use with the Matplotlib animation ffmpeg writer. If fille is True, insert blank for missing frames. If corrected is False use raw scanline data in rectangular format. If corrected is True interpolate the scanline data to correct for transducer geometry."""
