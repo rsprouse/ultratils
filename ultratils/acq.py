@@ -249,11 +249,11 @@ class Acq():
                 self.n_frames = None
                 self.image_h = None
                 self.image_w = None
-                self.probe = None
+                self._probe = None
             self.n_frames = rdr.header.nframes
             self.image_h = rdr.header.h
             self.image_w = rdr.header.w
-            self.probe = rdr.header.probe
+            self._probe = rdr.header.probe
         else:
             raise AcqError("Unknown type '{:}' specified.".format(type))
         try:
