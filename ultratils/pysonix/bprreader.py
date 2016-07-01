@@ -30,14 +30,14 @@ class BprReader:
         self.header = Header(self._fhandle)
         if self.header.filetype != 2:
             msg = "Unexpected filetype! Expected 2 and got {filetype:d}"
-            raise ValueError, msg.format(filetype=self.header.filetype)
+            raise ValueError(msg.format(filetype=self.header.filetype))
         # these data_fmt and framesize values are specific to .bpr
         self.data_fmt = 'B' * (self.header.h * self.header.w)
         self.framesize = 1 * (self.header.h * self.header.w)
         self.csums = [None] * self.header.nframes
         if checksum:
             for idx in range(self.header.nframes):
-                print "working on {:d}".format(idx)
+                print("working on {:d}".format(idx))
                 data = self.get_frame()
                 csum = hashlib.sha1(data.copy(order="c")).hexdigest()
                 if csum in self.csums:
