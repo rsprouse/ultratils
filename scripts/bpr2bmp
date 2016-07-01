@@ -9,7 +9,10 @@ import ultratils.pysonix.bprreader
 import ultratils.pysonix.probe
 import ultratils.pysonix.scanconvert
 
-import Image
+try:  # Python 2
+    import Image
+except ImportError:  # Python 3
+    from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import datetime
