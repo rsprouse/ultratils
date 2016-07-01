@@ -47,12 +47,12 @@ def usage():
     print ('\n' + help_usage_str)
 
 def version():
-    print """
+    print("""
 bpr2bmp Version %s
-""" % (VERSION)
+""" % (VERSION))
 
 def help():
-    print """
+    print("""
 bpr2bmp - Convert pre scan-converted B-mode (.bpr) ultrasound data to bitmaps
 
 bpr2bmp reads from .bpr files and saves the individual frames to indexed
@@ -89,7 +89,7 @@ these frames. If you want to produce duplicate .bmp files, use the
 --no-deduplicate parameter.
 
 Use --verbose to turn on status messages as .bpr files are processed.
-""" % (standard_usage_str, ver_usage_str, help_usage_str)
+""" % (standard_usage_str, ver_usage_str, help_usage_str))
 
 def bitmap_for_bpr_exists(bpr):
     """Return true if one or more bitmap files exist for a .bpr file."""
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:], "p:h:v", ["probe=", "help", "version", "seek", "verbose", "force", "no-index-file", "no-deduplicate"])
     except getopt.GetoptError as err:
-        print str(err)
+        print(str(err))
         usage()
         sys.exit(2)
     seekmode = False
@@ -180,7 +180,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     if Verbose:
-        print "Starting at: ", datetime.datetime.now().time()
+        print("Starting at: ", datetime.datetime.now().time())
     for fname in args:
         if seekmode:
             bprlist = []
@@ -208,5 +208,5 @@ if __name__ == '__main__':
 #                sys.stderr.write("Error in converting {:s}: {:s}.\n".format(fname, e))
 
     if Verbose:
-        print "Ending at: ", datetime.datetime.now().time()
+        print("Ending at: ", datetime.datetime.now().time())
 

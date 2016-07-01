@@ -70,12 +70,12 @@ def usage():
     print ('\n' + help_usage_str)
 
 def version():
-    print """
+    print("""
 sepchan Version %s
-""" % (VERSION)
+""" % (VERSION))
 
 def help():
-    print """
+    print("""
 psync - Read synchronization signal from a .wav file and output a .sync.txt file.
 
 psync reads audio data from a .wav file, finds synchronization pulses, and
@@ -106,13 +106,13 @@ In seek mode the *.bpr.wav files are assumed to be two-channel audio files
 with the synchronization signal in channel 1 (the second channel).
 
 Use --verbose to turn on status messages as .wav files are processed.
-""" % (standard_usage_str, ver_usage_str, help_usage_str)
+""" % (standard_usage_str, ver_usage_str, help_usage_str))
 
 if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:], "c:h:v", ["channel=", "help", "version", "seek", "verbose", "force", "raw-data-index", "no-raw-data-index", "summary", "algorithm=", "received_indexes="])
     except getopt.GetoptError as err:
-        print str(err)
+        print(str(err))
         usage()
         sys.exit(2)
     channel = None
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     if verbose:
-        print "Starting at: ", datetime.now().time()
+        print("Starting at: ", datetime.now().time())
     for fname in args:
         if seekmode:
             if channel is None:

@@ -45,12 +45,12 @@ def usage():
     print ('\n' + help_usage_str)
 
 def version():
-    print """
+    print("""
 taptest Version %s
-""" % (VERSION)
+""" % (VERSION))
 
 def help():
-    print """
+    print("""
 taptest - Find taps in .wav file and .bpr file.
 
 taptest reads audio data from a .wav file and finds a microphone tap event.
@@ -74,7 +74,7 @@ In seek mode the program scans one or more directories for *.bpr files and
 operates on each one it finds.
 
 Use --verbose to turn on status messages as files are processed.
-""" % (standard_usage_str, ver_usage_str, help_usage_str)
+""" % (standard_usage_str, ver_usage_str, help_usage_str))
 
 def do_test(bpr, wav_alg, bpr_alg):
     '''Perform a tap test for the bpr.'''
@@ -106,9 +106,9 @@ def do_test(bpr, wav_alg, bpr_alg):
                 atimes[atime] = ['peakdiff']
         elif alg == 'impulse':
             atime = ultratils.taptest.impulse(bpr + '.wav')
-            print atime
+            print(atime)
             ataptier.add(audiolabel.Label('impulse', atime))
-    for t,algs in atimes.iteritems():
+    for t,algs in atimes.items():
         ataptier.add(audiolabel.Label(','.join(algs), t))
 
     # TODO: implement bpr_alg
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "wav_algorithm=", "bpr_algorithm="])
     except getopt.GetoptError as err:
-        print str(err)
+        print(str(err))
         usage()
         sys.exit(2)
     seekmode = False
@@ -173,7 +173,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     if verbose:
-        print "Starting at: ", datetime.now().time()
+        print("Starting at: ", datetime.now().time())
     for fname in args:
         if seekmode:
             bprlist = []
@@ -185,7 +185,7 @@ if __name__ == '__main__':
                     try:
                         do_test(bpr, wav_algorithm, bpr_algorithm)
                     except Exception as e:
-                        print e
+                        print(e)
                         sys.stderr.write("Error creating .tap.TextGrid for {:s}. Skipping.\n".format(bpr))
         else:
             if verbose:
@@ -193,5 +193,5 @@ if __name__ == '__main__':
             do_test(fname, wav_algorithm, bpr_algorithm)
 
     if verbose:
-        print "Ending at: ", datetime.now().time()
+        print("Ending at: ", datetime.now().time())
 
