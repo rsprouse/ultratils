@@ -40,9 +40,9 @@ ver_usage_str = 'taptest --version|-v'
 help_usage_str = 'taptest --help|-h'
 
 def usage():
-    print ('\n' + standard_usage_str)
-    print ('\n' + ver_usage_str)
-    print ('\n' + help_usage_str)
+    print('\n' + standard_usage_str)
+    print('\n' + ver_usage_str)
+    print('\n' + help_usage_str)
 
 def version():
     print("""
