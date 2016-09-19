@@ -212,12 +212,12 @@ def acquire(acqname, paramsfile, ultracomm_cmd, skip_ultracomm, skip_audio, do_l
                 sys.stderr.write("ultrasession: RUNNING ultracomm\n")
                 sys.stderr.flush()
                 rc = run_ultracomm_and_block(ult_args)
-                print "ultrasession: RAN ultracomm and got {:d}".format(rc)
+                print("ultrasession: RAN ultracomm and got {:d}".format(rc))
                 sys.stderr.write("ultrasession: RAN ultracomm and got {:d}\n".format(rc))
                 sys.stderr.flush()
             except (IOError, RuntimeError, Exception) as e:
-                print "ultrasession: Caught an exception while running ultracomm."
-                print str(e)
+                print("ultrasession: Caught an exception while running ultracomm.")
+                print(str(e))
                 sys.stderr.write("ultrasession: Caught an Exception while running ultracomm.\n")
                 sys.stderr.write("ultrasession: Exception string: " + str(e) + "\n")
                 sys.stderr.flush()
@@ -334,7 +334,7 @@ if __name__ == '__main__':
                 try:
                     os.mkdir(acqdir)
                 except:
-                    print "Could not create {%s}!".format(acqdir)
+                    print("Could not create {%s}!".format(acqdir))
                     raise
             try:
                 if stim != '':
@@ -345,7 +345,7 @@ if __name__ == '__main__':
                 acqbase = os.path.join(acqdir, tstamp + RAWEXT)
                 try:
                     copyparams = os.path.join(acqdir, 'params.cfg')
-                    print "Copying ", params, " to ", copyparams
+                    print("Copying ", params, " to ", copyparams)
                     shutil.copyfile(params, copyparams)
                     with open(os.path.join(acqdir, 'stim.txt'), 'w+') as stimout:
                         stimout.write(stim)

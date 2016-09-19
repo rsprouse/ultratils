@@ -92,7 +92,12 @@ outbasename = basename for output synchronization files, which will consist of
         sys.stderr.write("Frame durations range [{0:1.4f} {1:1.4f}].\n".format(dtimes.min(), dtimes.max()))
 
     if received_indexes is not None:
-        raw_indexes = np.loadtxt(received_indexes, dtype=int)
+        # converter handles misformatted .idx.txt with floats instead of ints
+        raw_indexes = np.loadtxt(
+            received_indexes, 
+            dtype=int, 
+            converters={0: lambda s: int(float(s))}
+        )
         rd_idx = 0
     last_frame = -1
     outname = wavname.replace('.ch1.wav', '').replace('.ch2.wav','').replace('.wav','')

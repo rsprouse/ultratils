@@ -29,17 +29,17 @@ ver_usage_str = 'sepchan --version|-v'
 help_usage_str = 'sepchan --help|-h'
 
 def usage():
-    print ('\n' + standard_usage_str)
-    print ('\n' + ver_usage_str)
-    print ('\n' + help_usage_str)
+    print('\n' + standard_usage_str)
+    print('\n' + ver_usage_str)
+    print('\n' + help_usage_str)
 
 def version():
-    print """
+    print("""
 sepchan Version %s
-""" % (VERSION)
+""" % (VERSION))
 
 def help():
-    print """
+    print("""
 sepchan - Separate channels of a stereo file into new files.
 
 sepchan reads from stereo .wav files and saves the channels to separate
@@ -67,7 +67,7 @@ find a corresponding '.ch1.wav' file then it skips processing that .wav. Use
 mode.
 
 Use --verbose to turn on status messages as .wav files are processed.
-""" % (standard_usage_str, ver_usage_str, help_usage_str)
+""" % (standard_usage_str, ver_usage_str, help_usage_str))
 
 def separate_channels(wavname):
     '''Separate the left and right channels from a .wav.'''
@@ -84,7 +84,7 @@ def separate_channels(wavname):
         if sox_proc.returncode != 0:
             #for line in sox_proc.stderr:
             #    sys.stderr.write(line + '\n')
-            print sox_args
+            print(sox_args)
             raise Exception("sox exited with status: {0}".format(sox_proc.returncode))
 
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help", "version", "seek", "verbose", "force"])
     except getopt.GetoptError as err:
-        print str(err)
+        print(str(err))
         usage()
         sys.exit(2)
     seekmode = False
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     if verbose:
-        print "Starting at: ", datetime.now().time()
+        print("Starting at: ", datetime.now().time())
     for fname in args:
         if seekmode:
             wavlist = []
@@ -143,5 +143,5 @@ if __name__ == '__main__':
             separate_channels(fname)
 
     if verbose:
-        print "Ending at: ", datetime.now().time()
+        print("Ending at: ", datetime.now().time())
 
