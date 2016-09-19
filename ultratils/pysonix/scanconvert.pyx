@@ -53,6 +53,8 @@ probe = Probe object
 """
         super(Converter, self).__init__(*args, **kwargs)
         self.header = header
+        self.input_h = header.h
+        self.input_w = header.w
         self.probe = probe
 
         # apitch, lpitch, radius calculations and ppmm value drawn from
