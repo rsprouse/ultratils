@@ -71,31 +71,29 @@ DataFrame correspond to the first axis of the array.
         rows.append(row)
     return (data, pd.DataFrame.from_records(rows))
 
-"""check for 'white fan of death' BPRs (unusually bright shading and loss of contrast information)."""
-def isWhiteBpr(bprFileName):
-    checkBpr = ultratils.pysonix.bprreader.BprReader(bprFileName)
-    # select first frame for checking - problem does seem to manifest here.
-    frame = checkBpr.get_frame(0)
+def is_white_bpr(bpr_file_name):
+    """check for 'white fan of death' BPRs (unusually bright shading and loss of contrast information)."""
+    check_bpr = ultratils.pysonix.bprreader.BprReader(bpr_file_name) # select first frame for checking - problem does seem to manifest here.
+    frame = check_bpr.get_frame(0)
     if (np.mean(frame) > 200) and (np.var(frame) < 1200):
         return True
     else:
         return False
 
-"""check for frozen BPRs (identical frame-to-frame)."""
-def isFrozenBpr(bprFileName):
-    # select first and second frames for checking - problem does seem to manifest here.
-    checkBpr_first = ultratils.pysonix.bprreader.BprReader(bprFileName)
-    frame_first = checkBpr_first.get_frame(0)
-    checkBpr_second = ultratils.pysonix.bprreader.BprReader(bprFileName)
-    frame_second = checkBpr_first.get_frame(1)
+def is_frozen_bpr(bpr_file_name):
+    """check for frozen BPRs (identical frame-to-frame)."""
+    check_bpr_first = ultratils.pysonix.bprreader.BprReader(bpr_file_name) # select first and second frames for checking - problem does seem to manifest here.
+    frame_first = check_bpr_first.get_frame(0)
+    check_bpr_second = ultratils.pysonix.bprreader.BprReader(bpr_file_name)
+    frame_second = check_bpr_first.get_frame(1)
     if np.array_equal(frame_first,frame_second):
         return True
     else:
         return False
 
-"""function to check for any type of badly recorded BPR."""
-def isBadBpr(bprFileName):
-    if isWhiteFan(bprFilename) or isFrozenFan(bprFilename):
+def is_bad_bpr(bpr_file_name):
+    """check for any type of badly recorded BPR."""
+    if is_white_fan(bpr_file_name) or is_frozen_fan(bpr_file_name):
         return True
     else:
         return False
