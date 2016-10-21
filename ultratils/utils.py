@@ -70,3 +70,32 @@ DataFrame correspond to the first axis of the array.
         row['raw_data_idx'] = fr_idx
         rows.append(row)
     return (data, pd.DataFrame.from_records(rows))
+
+"""check for 'white fan of death' BPRs (unusually bright shading and loss of contrast information)."""
+def isWhiteBpr(bprFileName):
+    checkBpr = ultratils.pysonix.bprreader.BprReader(bprFileName)
+    # select first frame for checking - problem does seem to manifest here.
+    frame = checkBpr.get_frame(0)
+    if (np.mean(frame) > 200) and (np.var(frame) < 1200):
+        return True
+    else:
+        return False
+
+"""check for frozen BPRs (identical frame-to-frame)."""
+def isFrozenBpr(bprFileName):
+    # select first and second frames for checking - problem does seem to manifest here.
+    checkBpr_first = ultratils.pysonix.bprreader.BprReader(bprFileName)
+    frame_first = checkBpr_first.get_frame(0)
+    checkBpr_second = ultratils.pysonix.bprreader.BprReader(bprFileName)
+    frame_second = checkBpr_first.get_frame(1)
+    if np.array_equal(frame_first,frame_second):
+        return True
+    else:
+        return False
+
+"""function to check for any type of badly recorded BPR."""
+def isBadBpr(bprFileName):
+    if isWhiteFan(bprFilename) or isFrozenFan(bprFilename):
+        return True
+    else:
+        return False
