@@ -152,6 +152,14 @@ class Acq():
         return '{:}.wav'.format(self.abs_image_file)
 
     @property
+    def abs_ch1_audio_file(self):
+        return '{:}.ch1.wav'.format(self.abs_image_file)
+
+    @property
+    def abs_ch2_audio_file(self):
+        return '{:}.ch2.wav'.format(self.abs_image_file)
+
+    @property
     def abs_versions_file(self):
         return os.path.join(self.abspath, "versions.txt")
 
