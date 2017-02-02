@@ -19,7 +19,7 @@ ext_modules = [
 setup(
   name = 'ultratils',
   cmdclass = {'build_ext': build_ext},
-  ext_modules = ext_modules,
+#  ext_modules = ext_modules,
   packages = ['ultratils', 'ultratils.pysonix'],
   package_data = {'ultratils.pysonix': ['data/probes.xml']},
   scripts = [
