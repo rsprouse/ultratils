@@ -1,11 +1,29 @@
 # Generic ultratils utility functions
 
 import os, sys
+from datetime import datetime
+from dateutil.tz import tzlocal
 import numpy as np
 import pandas as pd
 import ultratils.acq
 import audiolabel
 from ultratils.pysonix.bprreader import BprReader
+
+def make_acqdir(datadir):
+    """Make a timestamped directory in datadir and return a tuple with its 
+name and timestamp. Does not complain if directory already exists."""
+    tstamp = datetime.now(tzlocal()).replace(microsecond=0).isoformat().replace(":","")
+    acqdir = os.path.normpath(os.path.join(datadir, tstamp))
+    # This is 'mkdir -p' style behavior.
+    try:
+        os.makedirs(acqdir)
+    except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(acqdir):
+            pass
+        else:
+            print("Could not create {%s}!".format(acqdir))
+            raise
+    return (acqdir, tstamp)
 
 def extract_frames(expdir, list_filename=None, frames=None):
     """Extract image frames from specified acquisitions and return as a numpy array and
