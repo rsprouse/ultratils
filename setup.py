@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 from distutils.extension import Extension
-from Cython.Distutils import build_ext
+#from Cython.Distutils import build_ext
 import numpy
 
 ext_modules = [
