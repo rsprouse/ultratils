@@ -5,7 +5,10 @@ from datetime import datetime
 from dateutil.tz import tzlocal
 import numpy as np
 import pandas as pd
-import ultratils.acq
+try:
+    import ultratils.acq
+except:
+    pass
 import audiolabel
 from ultratils.pysonix.bprreader import BprReader
 
