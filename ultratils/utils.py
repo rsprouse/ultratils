@@ -115,7 +115,7 @@ def is_frozen_bpr(bpr_file_name):
 
 def is_bad_bpr(bpr_file_name):
     """check for any type of badly recorded BPR."""
-    if is_white_fan(bpr_file_name) or is_frozen_fan(bpr_file_name):
+    if is_white_bpr(bpr_file_name) or is_frozen_bpr(bpr_file_name):
         return True
     else:
         return False
