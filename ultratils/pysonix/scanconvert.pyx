@@ -47,7 +47,7 @@ bmpdata = converter.as_bmp(framedata)
 
 """
 
-    def __init__(self, header, probe, *args, **kwargs):
+    def __init__(self, header, probe, ppmm=2, *args, **kwargs):
         """header = bpr header
 probe = Probe object
 """
@@ -74,8 +74,8 @@ probe = Probe object
         self.lpitch = float(probe.pitch)*1e-6*probe.numElements/header.w
         # probe radius
         self.radius = probe.radius*1e-6
-        # pixels per mm; hardcoded value in SonixDataTools.m
-        self.ppmm = 2
+        # pixels per mm; hardcoded value of 2 in SonixDataTools.m
+        self.ppmm = ppmm
 
         # The remaining calculations are drawn from ultrasonix matlab code
         # in scanconvert.m.
