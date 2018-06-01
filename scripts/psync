@@ -161,11 +161,8 @@ if __name__ == '__main__':
                 channel = 1
             wavlist = []
             for root, dirnames, filenames in os.walk(fname):
-                #for filename in fnmatch.filter(filenames, '*.bpr'): # TODO make bpr more general
                 for filename in filenames:
                     if filename.lower().endswith(('.bpr', '.raw')):
-                        # TODO give "ultrasoundname" a better name
-                        # same for "outultrasoundname"
                         usname = os.path.join(root, filename)
                         basename = os.path.splitext(usname)[0]
                         wav = basename + '.wav'
