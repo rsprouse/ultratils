@@ -18,7 +18,7 @@ def pcm2float(sig, dtype=np.float64):
     assert sig.dtype.kind == 'i', "'sig' must be an array of signed integers!"
     dtype = np.dtype(dtype)  # allow string input (e.g. 'f')
     # Note that 'min' has a greater (by 1) absolute value than 'max'!
-    # Therefore, we use 'min' here to avoid clipping.
+    # Therefore, we use '-min' here to avoid clipping.
     return sig.astype(dtype) / dtype.type(-np.iinfo(sig.dtype).min)
 
 def loadsync(wavfile, chan):
@@ -151,7 +151,7 @@ outbasename = basename for output synchronization files, which will consist of
         if t2 > raw_data_tier.end:
             raw_data_tier.end = t2
     with open(tgname, 'w') as tgout:
-        tgout.write(lm._as_string(fmt="praat_long"))
+        tgout.write(lm.as_string(fmt="praat_long"))
  
 
 
