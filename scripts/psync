@@ -159,25 +159,35 @@ if __name__ == '__main__':
         if seekmode:
             if channel is None:
                 channel = 1
-            wavlist = []
             for root, dirnames, filenames in os.walk(fname):
-                for filename in fnmatch.filter(filenames, '*.bpr'):
-                    bprname = os.path.join(root, filename)
-                    wav = bprname + '.wav'
-                    if os.path.isfile(bprname + '.sync.txt') and force is False:
+                for filename in filenames:
+                    if filename.lower().endswith(('.bpr', '.raw')):
+                        usname = os.path.join(root, filename)
+                        shortname = os.path.splitext(usname)[0]
+                        try:
+                            with open(shortname + '.wav') as wfile:
+                                pass
+                        except IOError as e:
+                            if verbose:
+                                sys.stderr.write("No short filename {}; using long filename\n".format(shortname + '.wav'))
+                            basename = usname 
+                        else:
+                            basename = shortname
+                        wav = basename + '.wav'
+                        if os.path.isfile(basename + '.sync.txt') and force is False:
+                            if verbose:
+                                sys.stderr.write("Skipping {:s}.\n".format(wav))
+                            continue
                         if verbose:
-                            sys.stderr.write("Skipping {:s}.\n".format(wav))
-                        continue
-                    if verbose:
-                        sys.stderr.write("Creating sync file for {:s}.\n".format(wav))
-                    try:
-                        idxfile = received_indexes
-                        if raw_data_index is True and idxfile is None:
-                            idxfile = "{}.idx.txt".format(bprname)
-                        ultratils.psync.sync2text(wav, chan=channel, algorithm=algorithm, outbasename=bprname, received_indexes=idxfile, summary=summary)
-                    except Exception as e:
-                        print(e)
-                        sys.stderr.write("Error creating sync file for {:s}. Skipping.\n".format(wav))
+                            sys.stderr.write("Creating sync file for {:s}.\n".format(wav))
+                        try:
+                            idxfile = received_indexes
+                            if raw_data_index is True and idxfile is None:
+                                idxfile = "{}.idx.txt".format(basename)
+                            ultratils.psync.sync2text(wav, chan=channel, algorithm=algorithm, outbasename=basename, received_indexes=idxfile, summary=summary)
+                        except Exception as e:
+                            print(e)
+                            sys.stderr.write("Error creating sync file for {:s}. Skipping.\n".format(wav))
         else:
             if verbose:
                 sys.stderr.write("Creating sync file for {:s}.\n".format(fname))
@@ -189,4 +199,3 @@ if __name__ == '__main__':
 
     if verbose:
         print("Ending at: ", datetime.now().time())
-
