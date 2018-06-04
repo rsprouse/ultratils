@@ -159,16 +159,20 @@ if __name__ == '__main__':
         if seekmode:
             if channel is None:
                 channel = 1
-            wavlist = []
             for root, dirnames, filenames in os.walk(fname):
                 for filename in filenames:
                     if filename.lower().endswith(('.bpr', '.raw')):
                         usname = os.path.join(root, filename)
-                        # TODO creates problem for ts.bpr.xxx filenames
-                        # the .bpr. needs to be there!
-                        # but it can't be there for .raw files!
-                        # >>> TODO standardize the file naming conventions
-                        basename = os.path.splitext(usname)[0] 
+                        shortname = os.path.splitext(usname)[0]
+                        try: # check for no-sandwich filename
+                            with open(shortname + '.wav') as wfile: # TODO
+                                pass
+                        except IOError as e: # use sandwich filename
+                            if verbose:
+                                print("No short filename {}; using long filename\n".format(shortname + '.wav'))
+                            basename = usname 
+                        else: # use no-sandwich filename
+                            basename = shortname
                         wav = basename + '.wav'
                         if os.path.isfile(basename + '.sync.txt') and force is False:
                             if verbose:

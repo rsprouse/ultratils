@@ -30,7 +30,7 @@ def loadsync(wavfile, chan):
         data = w.readframes(w.getnframes())
         rate = w.getframerate()
     sig = np.frombuffer(data, dtype='<i2').reshape(-1, nchannels)
-    return (pcm2float(sig[:,chan], np.float32), rate)
+    return (pcm2float(sig[:,int(chan)], np.float32), rate)
 
 def sync_pstretch(sig, threshold, min_run):
     '''Find and return indexes of synchronization points from pstretch unit,
