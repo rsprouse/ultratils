@@ -164,14 +164,14 @@ if __name__ == '__main__':
                     if filename.lower().endswith(('.bpr', '.raw')):
                         usname = os.path.join(root, filename)
                         shortname = os.path.splitext(usname)[0]
-                        try: # check for no-sandwich filename
-                            with open(shortname + '.wav') as wfile: # TODO
+                        try:
+                            with open(shortname + '.wav') as wfile:
                                 pass
-                        except IOError as e: # use sandwich filename
+                        except IOError as e:
                             if verbose:
                                 print("No short filename {}; using long filename\n".format(shortname + '.wav'))
                             basename = usname 
-                        else: # use no-sandwich filename
+                        else:
                             basename = shortname
                         wav = basename + '.wav'
                         if os.path.isfile(basename + '.sync.txt') and force is False:
