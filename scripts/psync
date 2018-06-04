@@ -169,7 +169,7 @@ if __name__ == '__main__':
                                 pass
                         except IOError as e:
                             if verbose:
-                                print("No short filename {}; using long filename\n".format(shortname + '.wav'))
+                                sys.stderr.write("No short filename {}; using long filename\n".format(shortname + '.wav'))
                             basename = usname 
                         else:
                             basename = shortname
