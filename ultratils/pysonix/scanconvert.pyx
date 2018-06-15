@@ -52,6 +52,7 @@ bmpdata = converter.as_bmp(framedata)
 probe = Probe object
 """
         super(Converter, self).__init__(*args, **kwargs)
+        # TODO EchoB option for input of header/probe values
         self.header = header
         self.input_h = header.h
         self.input_w = header.w
@@ -129,7 +130,7 @@ frame = frame of bpr data
 """
         self.bmp[:] = 0
         self.bmp.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
-        return self.bmp
+        return self.bmp.astype(frame.dtype, copy=False)
         #data = frame.astype(np.long)
         #return scanconvert(data, indt=self.indt, indr=self.indr)
 
