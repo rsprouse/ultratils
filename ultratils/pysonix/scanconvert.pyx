@@ -114,23 +114,38 @@ probe = Probe object
         self.yreg = yreg
         self.bmp_index = bmp_index
         self.bpr_index = bpr_index
-        self.bmp = np.zeros(self.xreg.shape, dtype=NPLONG)
+        #self.bmp = np.zeros(self.xreg.shape, dtype=NPLONG)
+        self._fan = np.zeros(self.xreg.shape, dtype=NPLONG)
 
     def bmp_overlay(self, theta, radius):
-        """Return points specified in polar (bpr) coordinates as cartesian points that can be plotted over a scanconverted bmp.
-theta = bpr scanline index
-radius = bpr scanline height index"""
-        points = np.zeros(self.bmp.shape, dtype=NPLONG) * np.nan
+        """
+            Return points specified in polar (bpr) coordinates as cartesian points that can be plotted over a scanconverted bmp.
+            theta = bpr scanline index
+            radius = bpr scanline height index
+        """
+        points = np.zeros(self._fan.shape, dtype=NPLONG) * np.nan
         points.ravel()[theta]
         return points
+    
+    def convert(self, frame):
+        """
+            Return unconverted raw data frame as a converted bitmap.
+            frame = frame of unconverted data
+        """
+        self._fan[:] = 0
+        if self._fan.dtype != frame.dtype:
+            self._fan = self._fan.astype(frame.dtype)
+        self._fan.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
+        return self._fan.astype(frame.dtype, copy=False)
 
     def as_bmp(self, frame):
-        """Return bpr frame data as a converted bitmap.
-frame = frame of bpr data
-"""
-        self.bmp[:] = 0
-        self.bmp.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
-        return self.bmp.astype(frame.dtype, copy=False)
+        """
+            Deprecated (use convert). Return bpr frame data as a converted bitmap.
+            frame = frame of bpr data
+        """
+        self._fan[:] = 0
+        self._fan.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
+        return self._fan.astype(frame.dtype, copy=False)
         #data = frame.astype(np.long)
         #return scanconvert(data, indt=self.indt, indr=self.indr)
 
