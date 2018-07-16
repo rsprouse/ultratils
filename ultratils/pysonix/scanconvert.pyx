@@ -1,5 +1,6 @@
 # Class for converting from .bpr (pre-scan converted b-mode data)
 
+import sys
 import numpy as np
 cimport numpy as np
 NPINT = np.int
@@ -115,6 +116,7 @@ probe = Probe object
         self.bmp_index = bmp_index
         self.bpr_index = bpr_index
         self.bmp = np.zeros(self.xreg.shape, dtype=NPLONG)
+        self._fan = np.zeros(self.xreg.shape, dtype=NPLONG)
 
     def bmp_overlay(self, theta, radius):
         """Return points specified in polar (bpr) coordinates as cartesian points that can be plotted over a scanconverted bmp.
@@ -124,10 +126,23 @@ radius = bpr scanline height index"""
         points.ravel()[theta]
         return points
 
+    def convert(self, frame):
+        """
+            Return bpr or raw frame data as scan-converted ndarray.
+            frame = frame of unconverted bpr or raw data
+        """
+        self._fan[:] = 0
+        if self._fan.dtype != frame.dtype:
+            self._fan = self._fan.astype(frame.dtype)
+        self._fan.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
+        return self._fan.astype(frame.dtype, copy=False)
+
     def as_bmp(self, frame):
-        """Return bpr frame data as a converted bitmap.
-frame = frame of bpr data
-"""
+        """
+            Deprecated. Return bpr frame data as a converted bitmap.
+            frame = frame of bpr data
+        """
+        sys.stderr.write("WARNING: as_bmp is deprecated; use convert instead.")
         self.bmp[:] = 0
         self.bmp.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
         return self.bmp.astype(frame.dtype, copy=False)
