@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os
+import os, sys
 import struct
 import numpy as np
 import hashlib
@@ -16,6 +16,15 @@ class RawReader:
         self.data_fmt = '<{:d}{:}'.format(self.h * self.w, pixel_fmt)
         self.framesize = struct.calcsize(self.data_fmt)
         st = os.stat(filename)
+        try:
+            assert((st.st_size % self.framesize) == 0)
+        except AssertionError:
+            msg = 'WARNING: Did not find even number of frames for {:}.'.format(
+                filename
+            )
+            sys.stderr.write(msg)
+            sys.stderr.write(' File size {:} bytes.'.format(st.st_size))
+            sys.stderr.write(' Frame size {:} bytes.'.format(self.framesize))
         self.nframes = np.int(st.st_size / self.framesize)
         self.csums = [None] * self.nframes
         if checksum:
