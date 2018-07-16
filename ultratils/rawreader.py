@@ -6,20 +6,17 @@ import numpy as np
 import hashlib
 
 class RawReader:
-    def __init__(self, filename, h, w, pixel_fmt='B', checksum=False):
+    def __init__(self, filename, w, h, pixel_fmt='B', checksum=False):
         self.filename = os.path.abspath(filename)
         self._fhandle = None
         self.open()
-        self.h = self.header.h
-        self.w = self.header.w
+        self.w = w
+        self.h = h
         self.pixel_fmt = pixel_fmt # format of a single value
-        self.data_fmt = '<{:d}{:}'.format(
-            self.header.h * self.header.w,
-            pixel_fmt
-        )
+        self.data_fmt = '<{:d}{:}'.format(self.h * self.w, pixel_fmt)
         self.framesize = struct.calcsize(self.data_fmt)
         st = os.stat(filename)
-        self.nframes = st['st_size']
+        self.nframes = np.int(st.st_size / self.framesize)
         self.csums = [None] * self.nframes
         if checksum:
             for idx in range(self.nframes):
@@ -47,7 +44,7 @@ class RawReader:
         except struct.error:   # ran out of data to unpack()
             raise StopIteration
         self._cursor = self._fhandle.tell()
-        return data.reshape([self.w, self.h])
+        return data.reshape([self.w, self.h]).T
  
     def get_frame(self, idx=None):
         '''Get the image frame specified by idx. Do not advance the read location of _fhandle.'''
@@ -57,7 +54,7 @@ class RawReader:
         packed_data = self._fhandle.read(self.framesize)
         self._fhandle.seek(self._cursor)
         data = np.array(struct.unpack(self.data_fmt, packed_data))
-        return data.reshape([self.w, self.h])
+        return data.reshape([self.w, self.h]).T
 
     def open(self):
         self._fhandle = open(self.filename, 'rb')
