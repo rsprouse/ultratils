@@ -53,7 +53,6 @@ class RawReader(object):
 data_offset=0, checksum=False):
         self.filename = os.path.abspath(filename)
         self._fhandle = None
-        self.open()dtype=np.uint8
         self.npoints = npoints
         self.nscanlines = nscanlines
         self.points_per_frame = npoints * nscanlines
@@ -73,8 +72,7 @@ data_offset=0, checksum=False):
             sys.stderr.write(' File size {:} bytes.'.format(st.st_size))
             sys.stderr.write(' Frame size {:} bytes.'.format(self.framesize))
         self.nframes = np.int((st.st_size - self.data_offset) / self.framesize)
-        self._fhandle.seek(0)
-        self._cursor = self._fhandle.tell()
+        self._cursor = 0
 
     @property
     def data(self):
@@ -104,6 +102,7 @@ data_offset=0, checksum=False):
     # Define __enter__ and __exit__ to create context manager.
     def __enter__(self):
         self.open()
+        return self
 
     def __exit__(self, *args):
         self.close()
