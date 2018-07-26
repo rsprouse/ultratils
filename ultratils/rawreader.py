@@ -49,12 +49,12 @@ class RawReader(object):
     Default value indicates no header.
 
     '''
-    def __init__(self, filename, npoints, nscanlines, dtype=np.uint8,
+    def __init__(self, filename, nscanlines, npoints, dtype=np.uint8,
 data_offset=0, checksum=False):
         self.filename = os.path.abspath(filename)
         self._fhandle = None
-        self.npoints = npoints
         self.nscanlines = nscanlines
+        self.npoints = npoints
         self.points_per_frame = npoints * nscanlines
         self.dtype = dtype
         dtypesize = np.dtype(self.dtype).itemsize
