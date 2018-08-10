@@ -134,16 +134,6 @@ probe = Probe object
             frame = frame of unconverted bpr or raw data
         """
         self._fan[:] = 0
-        if self._fan.dtype != frame.dtype:
-            self._fan = self._fan.astype(frame.dtype)
-        self._fan.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
-        return self._fan.astype(frame.dtype, copy=False)
-
-    def convert_flip(self, frame):
-        """
-            In testing: same as convert, but doesn't need multiple np.flipud()
-        """
-        self._fan[:] = 0
         frame = np.flipud(frame)
         if self._fan.dtype != frame.dtype:
             self._fan = self._fan.astype(frame.dtype)
