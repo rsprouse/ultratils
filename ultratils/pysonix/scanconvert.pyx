@@ -127,17 +127,6 @@ probe = Probe object
         points = np.zeros(self._fan.shape, dtype=NPLONG) * np.nan
         points.ravel()[theta]
         return points
-    
-    def convert(self, frame):
-        """
-            Return unconverted raw data frame as a converted bitmap.
-            frame = frame of unconverted data
-        """
-        self._fan[:] = 0
-        if self._fan.dtype != frame.dtype:
-            self._fan = self._fan.astype(frame.dtype)
-        self._fan.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
-        return self._fan.astype(frame.dtype, copy=False)
 
     def convert(self, frame):
         """
