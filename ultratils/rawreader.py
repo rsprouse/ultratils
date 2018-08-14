@@ -84,7 +84,10 @@ data_offset=0, checksum=False):
             data = np.fromfile(self._fhandle, self.dtype)
             self._fhandle.seek(self._cursor)
             imdims = [self.nframes, self.nscanlines, self.npoints]
-            self._data = np.rot90(data.reshape(imdims), axes=(1, 2))
+            try:
+                self._data = np.rot90(data.reshape(imdims), axes=(1, 2))
+            except TypeError: # numpy < v1.12
+                self._data = np.array([np.rot90(fr) for fr in data.reshape(imdims)])
         return self._data
 
     @property
