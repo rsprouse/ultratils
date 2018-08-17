@@ -144,13 +144,14 @@ probe = Probe object
         points.ravel()[theta]
         return points
 
-    def convert(self, frame):
+    def convert(self, frame, bgcolor=0):
         """
         Return bpr or raw frame data as scan-converted ndarray.
 
         frame = frame of unconverted bpr or raw data
+        bgcolor = background color value
         """
-        self._fan[:] = 0
+        self._fan[:] = bgcolor 
         if self._fan.dtype != frame.dtype:
             self._fan = self._fan.astype(frame.dtype)
         self._fan.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
