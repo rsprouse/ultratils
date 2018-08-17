@@ -32,19 +32,19 @@ cpdef scanconvert(np.ndarray[NPLONG_t, ndim=2] Iin, indt=None, indr=None):
             indt_ = indt[yCntr, xCntr]
             indr_ = indr[yCntr, xCntr]
             if indt_>0 and indt_<Iin.shape[1] and indr_>0 and indr_<Iin.shape[0]:
-                Iout[yCntr, xCntr] = Iin[indr_, indt_];
+                Iout[yCntr, xCntr] = Iin[indr_, indt_]
     return Iout
 
 class Converter(object):
     """Converter for bpr to bmp frame data.
 On construction this object calculates and caches the mapping from bpr
-frame pixels to bmp frame pixels. The as_bmp() method uses the cached
+frame pixels to scanconverted frame pixels. The convert() method uses the cached
 mapping to convert a frame of data.
 
 Sample usage:
 
 converter = Converter(header, probe)
-bmpdata = converter.as_bmp(framedata)
+bmpdata = converter.convert(framedata)
 
 """
 
@@ -134,9 +134,11 @@ probe = Probe object
 
     def bmp_overlay(self, theta, radius):
         """
-            Return points specified in polar (bpr) coordinates as cartesian points that can be plotted over a scanconverted bmp.
-            theta = bpr scanline index
-            radius = bpr scanline height index
+        Return points specified in polar (bpr) coordinates as cartesian
+        points that can be plotted over a scanconverted bmp.
+
+        theta = bpr scanline index
+        radius = bpr scanline height index
         """
         points = np.zeros(self._fan.shape, dtype=NPLONG) * np.nan
         points.ravel()[theta]
@@ -144,8 +146,9 @@ probe = Probe object
 
     def convert(self, frame):
         """
-            Return bpr or raw frame data as scan-converted ndarray.
-            frame = frame of unconverted bpr or raw data
+        Return bpr or raw frame data as scan-converted ndarray.
+
+        frame = frame of unconverted bpr or raw data
         """
         self._fan[:] = 0
         if self._fan.dtype != frame.dtype:
@@ -155,16 +158,17 @@ probe = Probe object
 
     def as_bmp(self, frame):
         """
-            Deprecated. Return bpr frame data as a converted bitmap.
-            frame = frame of bpr data
+        Deprecated. Return bpr frame data as a converted bitmap.
+        frame = frame of bpr data
         """
         sys.stderr.write("WARNING: as_bmp is deprecated; use convert instead.")
         self.bmp[:] = 0
         self.bmp.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
         return self.bmp.astype(frame.dtype, copy=False)
-        #data = frame.astype(np.long)
-        #return scanconvert(data, indt=self.indt, indr=self.indr)
 
     def default_bpr_frame(self, default=0):
-        """Return a frame of bpr data the same shape as defined by the header, filled with a default value."""
+        """
+        Return a frame of bpr data the same shape as defined by the header,
+        filled with a default value.
+        """
         return  np.zeros([self.header.h, self.header.w]) + default
