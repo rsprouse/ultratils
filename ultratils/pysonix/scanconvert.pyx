@@ -155,7 +155,7 @@ probe = Probe object
         if self._fan.dtype != frame.dtype:
             self._fan = self._fan.astype(frame.dtype)
         self._fan.ravel()[self.bmp_index] = frame.ravel()[self.bpr_index]
-        return self._fan.astype(frame.dtype, copy=False)
+        return self._fan
 
     def as_bmp(self, frame):
         """
