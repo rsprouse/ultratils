@@ -101,12 +101,26 @@ probe = Probe object
         bpr_index = []
         for xCntr in np.arange(0, xreg.shape[1]):
             for yCntr in np.arange(0, yreg.shape[0]):
-                [theta[yCntr, xCntr], rho[yCntr, xCntr]] = cart2pol(xreg[yCntr, xCntr], yreg[yCntr, xCntr])
-                indt = np.int(np.floor(theta[yCntr, xCntr]/(self.lpitch/self.radius)+header.w/2)+1)
-                indr = np.int(np.floor((rho[yCntr, xCntr]-self.radius)/self.apitch)+1)
+                [theta[yCntr, xCntr], rho[yCntr, xCntr]] = cart2pol(
+                    xreg[yCntr, xCntr], yreg[yCntr, xCntr]
+                )
+                indt = np.int(
+                    np.floor(
+                        theta[yCntr, xCntr]/(self.lpitch/self.radius)+header.w/2
+                    ) + 1
+                )
+                indr = np.int(
+                    np.floor(
+                        (rho[yCntr, xCntr]-self.radius)/self.apitch
+                    ) + 1
+                )
                 if indt>0 and indt<header.w and indr>0 and indr<header.h:
-                    bmp_index.append(np.ravel_multi_index((yCntr, xCntr), xreg.shape))
-                    bpr_index.append(np.ravel_multi_index((indr, indt), (header.h, header.w)))
+                    bmp_index.append(
+                        np.ravel_multi_index((yCntr, xCntr), xreg.shape)
+                    )
+                    bpr_index.append(
+                        np.ravel_multi_index((indr, indt), (header.h, header.w))
+                    )
         self.theta = theta
         self.rho = rho
         self.indt = indt
