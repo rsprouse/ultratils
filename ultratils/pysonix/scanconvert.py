@@ -2,31 +2,23 @@
 
 import sys
 import numpy as np
-cimport numpy as np
-NPINT = np.int
-ctypedef np.int_t NPINT_t
-NPFLOAT = np.float
-ctypedef np.float_t NPFLOAT_t
-NPLONG = np.long
-ctypedef np.long_t NPLONG_t
 
-cdef cart2pol(NPFLOAT_t x, NPFLOAT_t y):
+def cart2pol(x, y):
     """Convert from cartesian to radian polar coordinates."""
-    cdef NPFLOAT_t radius = np.hypot(x,y)
-    cdef NPFLOAT_t theta = np.arctan2(y,x)
+    radius = np.hypot(x,y)
+    theta = np.arctan2(y,x)
     return theta, radius
 
-cdef pol2cart(NPFLOAT_t radius, NPFLOAT_t theta):
+def pol2cart(radius, theta):
     """Convert from polar to cartesian coordinates."""
     x = radius * np.cos(theta)
     y = radius * np.sin(theta)
     return x, y
 
-cpdef scanconvert(np.ndarray[NPLONG_t, ndim=2] Iin, indt=None, indr=None):
+def scanconvert(Iin, indt=None, indr=None):
     '''Convert data from a .bpr to image data.'''
     framedim = indt.shape
-    cdef np.ndarray[NPLONG_t, ndim=2] Iout = np.zeros(framedim, dtype=NPLONG)
-    cdef int xCntr, yCntr, indt_, indr_
+    Iout = np.zeros(framedim, dtype=np.long)
     for xCntr in np.arange(0, framedim[1]):
         for yCntr in np.arange(0, framedim[0]):
             indt_ = indt[yCntr, xCntr]
@@ -81,7 +73,7 @@ probe = Probe object
 
         # The remaining calculations are drawn from ultrasonix matlab code
         # in scanconvert.m.
-        cdef np.ndarray t = np.zeros(header.h, dtype=NPFLOAT)
+        t = np.zeros(header.h, dtype=np.float)
         t = (np.arange(0,header.w)-header.w/2)*self.lpitch/self.radius
         self.t = t
         self.r = self.radius + np.arange(0,header.h)*self.apitch
@@ -92,10 +84,10 @@ probe = Probe object
         xreg = np.arange(np.min(self.x), np.max(self.x), step=1e-3/self.ppmm)
         yreg = np.arange(np.min(self.y), np.max(self.y), step=1e-3/self.ppmm)
         [yreg, xreg] = np.meshgrid(yreg, xreg)
-        theta = np.zeros(xreg.shape, dtype=NPFLOAT)
-        rho = np.zeros(xreg.shape, dtype=NPFLOAT)
-        indt = np.zeros(xreg.shape, dtype=NPFLOAT)
-        indr = np.zeros(xreg.shape, dtype=NPFLOAT)
+        theta = np.zeros(xreg.shape, dtype=np.float)
+        rho = np.zeros(xreg.shape, dtype=np.float)
+        indt = np.zeros(xreg.shape, dtype=np.float)
+        indr = np.zeros(xreg.shape, dtype=np.float)
         # TODO: vectorize?
         bmp_index = []
         bpr_index = []
@@ -129,8 +121,8 @@ probe = Probe object
         self.yreg = yreg
         self.bmp_index = bmp_index
         self.bpr_index = bpr_index
-        self.bmp = np.zeros(self.xreg.shape, dtype=NPLONG)
-        self._fan = np.zeros(self.xreg.shape, dtype=NPLONG)
+        self.bmp = np.zeros(self.xreg.shape, dtype=np.long)
+        self._fan = np.zeros(self.xreg.shape, dtype=np.long)
 
     def bmp_overlay(self, theta, radius):
         """
@@ -140,7 +132,7 @@ probe = Probe object
         theta = bpr scanline index
         radius = bpr scanline height index
         """
-        points = np.zeros(self._fan.shape, dtype=NPLONG) * np.nan
+        points = np.zeros(self._fan.shape, dtype=np.long) * np.nan
         points.ravel()[theta]
         return points
 
