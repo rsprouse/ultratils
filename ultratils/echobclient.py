@@ -20,19 +20,29 @@ class EchoBClient(object):
 
     def start_acq(self, acqdir):
         outmsg = u"START " + acqdir
-        win32file.WriteFile(self._hpipe, outmsg)
+        try:
+            win32file.WriteFile(self._hpipe, outmsg)
+        except TypeError:
+            win32file.WriteFile(self._hpipe, outmsg.encode('utf-8'))
         # Read acknowledgment from echobserv.
         (hr, inmsg) = win32file.ReadFile(self._hpipe, 1024)
         return inmsg
 
     def stop_acq(self):
         outmsg = u"STOP"
-        win32file.WriteFile(self._hpipe, outmsg)
+        try:
+            win32file.WriteFile(self._hpipe, outmsg)
+        except TypeError:
+            win32file.WriteFile(self._hpipe, outmsg.encode('utf-8'))
         # Read acknowledgment from echobserv.
         (hr, inmsg) = win32file.ReadFile(self._hpipe, 1024)
         return inmsg
 
     def quit(self):
         '''Send a message to echobserv to quit.'''
-        win32file.WriteFile(self._hpipe, u"QUIT")
+        outmsg = u"QUIT"
+        try:
+            win32file.WriteFile(self._hpipe, outmsg)
+        except TypeError:
+            win32file.WriteFile(self._hpipe, outmsg.encode('utf-8'))
         self._hpipe.close()
